@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,21 +48,26 @@ class URHO3D_API DebugHud : public Object
 
 public:
     /// Construct.
-    DebugHud(Context* context);
+    explicit DebugHud(Context* context);
     /// Destruct.
-    ~DebugHud();
+    ~DebugHud() override;
 
     /// Update. Called by HandlePostUpdate().
     void Update();
     /// Set UI elements' style from an XML file.
+    /// @property
     void SetDefaultStyle(XMLFile* style);
     /// Set elements to show.
+    /// @property
     void SetMode(unsigned mode);
     /// Set maximum profiler block depth, default unlimited.
+    /// @property
     void SetProfilerMaxDepth(unsigned depth);
     /// Set profiler accumulation interval in seconds.
+    /// @property
     void SetProfilerInterval(float interval);
     /// Set whether to show 3D geometry primitive/batch count only. Default false.
+    /// @property
     void SetUseRendererStats(bool enable);
     /// Toggle elements.
     void Toggle(unsigned mode);
@@ -70,30 +75,39 @@ public:
     void ToggleAll();
 
     /// Return the UI style file.
+    /// @property
     XMLFile* GetDefaultStyle() const;
 
     /// Return rendering stats text.
+    /// @property
     Text* GetStatsText() const { return statsText_; }
 
     /// Return rendering mode text.
+    /// @property
     Text* GetModeText() const { return modeText_; }
 
     /// Return profiler text.
+    /// @property
     Text* GetProfilerText() const { return profilerText_; }
 
     /// Return memory text.
+    /// @property
     Text* GetMemoryText() const { return memoryText_; }
 
     /// Return currently shown elements.
+    /// @property
     unsigned GetMode() const { return mode_; }
 
     /// Return maximum profiler block depth.
+    /// @property
     unsigned GetProfilerMaxDepth() const { return profilerMaxDepth_; }
 
-    /// Return profiler accumulation interval in seconds
+    /// Return profiler accumulation interval in seconds.
+    /// @property
     float GetProfilerInterval() const;
 
     /// Return whether showing 3D geometry primitive/batch count only.
+    /// @property
     bool GetUseRendererStats() const { return useRendererStats_; }
 
     /// Set application-specific stats.

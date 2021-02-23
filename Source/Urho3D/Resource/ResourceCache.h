@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+/// \file
 
 #pragma once
 
@@ -64,11 +66,12 @@ enum ResourceRequest
 };
 
 /// Optional resource request processor. Can deny requests, re-route resource file names, or perform other processing per request.
+/// @nobindtemp
 class URHO3D_API ResourceRouter : public Object
 {
 public:
     /// Construct.
-    ResourceRouter(Context* context) :
+    explicit ResourceRouter(Context* context) :
         Object(context)
     {
     }
@@ -84,9 +87,9 @@ class URHO3D_API ResourceCache : public Object
 
 public:
     /// Construct.
-    ResourceCache(Context* context);
+    explicit ResourceCache(Context* context);
     /// Destruct. Free all resources.
-    virtual ~ResourceCache();
+    ~ResourceCache() override;
 
     /// Add a resource load directory. Optional priority parameter which will control search order.
     bool AddResourceDir(const String& pathName, unsigned priority = PRIORITY_LAST);
@@ -117,16 +120,21 @@ public:
     /// Reload a resource based on filename. Causes also reload of dependent resources if necessary.
     void ReloadResourceWithDependencies(const String& fileName);
     /// Set memory budget for a specific resource type, default 0 is unlimited.
+    /// @property
     void SetMemoryBudget(StringHash type, unsigned long long budget);
     /// Enable or disable automatic reloading of resources as files are modified. Default false.
+    /// @property
     void SetAutoReloadResources(bool enable);
     /// Enable or disable returning resources that failed to load. Default false. This may be useful in editing to not lose resource ref attributes.
+    /// @property
     void SetReturnFailedResources(bool enable) { returnFailedResources_ = enable; }
 
     /// Define whether when getting resources should check package files or directories first. True for packages, false for directories.
+    /// @property
     void SetSearchPackagesFirst(bool value) { searchPackagesFirst_ = value; }
 
     /// Set how many milliseconds maximum per frame to spend on finishing background loaded resources.
+    /// @property
     void SetFinishBackgroundResourcesMs(int ms) { finishBackgroundResourcesMs_ = Max(ms, 1); }
 
     /// Add a resource router object. By default there is none, so the routing process is skipped.
@@ -138,11 +146,12 @@ public:
     SharedPtr<File> GetFile(const String& name, bool sendEventOnFailure = true);
     /// Return a resource by type and name. Load if not loaded yet. Return null if not found or if fails, unless SetReturnFailedResources(true) has been called. Can be called only from the main thread.
     Resource* GetResource(StringHash type, const String& name, bool sendEventOnFailure = true);
-    /// Load a resource without storing it in the resource cache. Return null if not found or if fails. Can be called from outside the main thread if the resource itself is safe to load completely (it does not possess for example GPU data.)
+    /// Load a resource without storing it in the resource cache. Return null if not found or if fails. Can be called from outside the main thread if the resource itself is safe to load completely (it does not possess for example GPU data).
     SharedPtr<Resource> GetTempResource(StringHash type, const String& name, bool sendEventOnFailure = true);
     /// Background load a resource. An event will be sent when complete. Return true if successfully stored to the load queue, false if eg. already exists. Can be called from outside the main thread.
-    bool BackgroundLoadResource(StringHash type, const String& name, bool sendEventOnFailure = true, Resource* caller = 0);
+    bool BackgroundLoadResource(StringHash type, const String& name, bool sendEventOnFailure = true, Resource* caller = nullptr);
     /// Return number of pending background-loaded resources.
+    /// @property
     unsigned GetNumBackgroundLoadResources() const;
     /// Return all loaded resources of a specific type.
     void GetResources(PODVector<Resource*>& result, StringHash type) const;
@@ -153,9 +162,11 @@ public:
     const HashMap<StringHash, ResourceGroup>& GetAllResources() const { return resourceGroups_; }
 
     /// Return added resource load directories.
+    /// @property
     const Vector<String>& GetResourceDirs() const { return resourceDirs_; }
 
     /// Return added package files.
+    /// @property
     const Vector<SharedPtr<PackageFile> >& GetPackageFiles() const { return packages_; }
 
     /// Template version of returning a resource by name.
@@ -167,30 +178,37 @@ public:
     /// Template version of releasing a resource by name.
     template <class T> void ReleaseResource(const String& name, bool force = false);
     /// Template version of queueing a resource background load.
-    template <class T> bool BackgroundLoadResource(const String& name, bool sendEventOnFailure = true, Resource* caller = 0);
+    template <class T> bool BackgroundLoadResource(const String& name, bool sendEventOnFailure = true, Resource* caller = nullptr);
     /// Template version of returning loaded resources of a specific type.
     template <class T> void GetResources(PODVector<T*>& result) const;
     /// Return whether a file exists in the resource directories or package files. Does not check manually added in-memory resources.
     bool Exists(const String& name) const;
     /// Return memory budget for a resource type.
+    /// @property
     unsigned long long GetMemoryBudget(StringHash type) const;
     /// Return total memory use for a resource type.
+    /// @property
     unsigned long long GetMemoryUse(StringHash type) const;
     /// Return total memory use for all resources.
+    /// @property
     unsigned long long GetTotalMemoryUse() const;
     /// Return full absolute file name of resource if possible, or empty if not found.
     String GetResourceFileName(const String& name) const;
 
     /// Return whether automatic resource reloading is enabled.
+    /// @property
     bool GetAutoReloadResources() const { return autoReloadResources_; }
 
     /// Return whether resources that failed to load are returned.
+    /// @property
     bool GetReturnFailedResources() const { return returnFailedResources_; }
 
     /// Return whether when getting resources should check package files or directories first.
+    /// @property
     bool GetSearchPackagesFirst() const { return searchPackagesFirst_; }
 
     /// Return how many milliseconds maximum to spend on finishing background loaded resources.
+    /// @property
     int GetFinishBackgroundResourcesMs() const { return finishBackgroundResourcesMs_; }
 
     /// Return a resource router by index.
@@ -222,9 +240,9 @@ private:
     /// Handle begin frame event. Automatic resource reloads and the finalization of background loaded resources are processed here.
     void HandleBeginFrame(StringHash eventType, VariantMap& eventData);
     /// Search FileSystem for file.
-    File* SearchResourceDirs(const String& nameIn);
+    File* SearchResourceDirs(const String& name);
     /// Search resource packages for file.
-    File* SearchPackages(const String& nameIn);
+    File* SearchPackages(const String& name);
 
     /// Mutex for thread-safe access to the resource directories, resource packages and resource dependencies.
     mutable Mutex resourceMutex_;
@@ -286,7 +304,7 @@ template <class T> bool ResourceCache::BackgroundLoadResource(const String& name
 
 template <class T> void ResourceCache::GetResources(PODVector<T*>& result) const
 {
-    PODVector<Resource*>& resources = reinterpret_cast<PODVector<Resource*>&>(result);
+    auto& resources = reinterpret_cast<PODVector<Resource*>&>(result);
     StringHash type = T::GetTypeStatic();
     GetResources(resources, type);
 
@@ -299,6 +317,7 @@ template <class T> void ResourceCache::GetResources(PODVector<T*>& result) const
 }
 
 /// Register Resource library subsystems and objects.
+/// @nobind
 void URHO3D_API RegisterResourceLibrary(Context* context);
 
 }

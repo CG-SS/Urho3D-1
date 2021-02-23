@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@
 #include "../Core/Mutex.h"
 #include "../Core/Object.h"
 
+#include <atomic>
+
 namespace Urho3D
 {
 
@@ -38,37 +40,29 @@ URHO3D_EVENT(E_WORKITEMCOMPLETED, WorkItemCompleted)
 class WorkerThread;
 
 /// Work queue item.
+/// @nobind
 struct WorkItem : public RefCounted
 {
     friend class WorkQueue;
 
 public:
-    // Construct
-    WorkItem() :
-        priority_(0),
-        sendEvent_(false),
-        completed_(false),
-        pooled_(false)
-    {
-    }
-
     /// Work function. Called with the work item and thread index (0 = main thread) as parameters.
-    void (* workFunction_)(const WorkItem*, unsigned);
+    void (* workFunction_)(const WorkItem*, unsigned){};
     /// Data start pointer.
-    void* start_;
+    void* start_{};
     /// Data end pointer.
-    void* end_;
+    void* end_{};
     /// Auxiliary data pointer.
-    void* aux_;
+    void* aux_{};
     /// Priority. Higher value = will be completed first.
-    unsigned priority_;
+    unsigned priority_{};
     /// Whether to send event on completion.
-    bool sendEvent_;
+    bool sendEvent_{};
     /// Completed flag.
-    volatile bool completed_;
+    std::atomic<bool> completed_{};
 
 private:
-    bool pooled_;
+    bool pooled_{};
 };
 
 /// Work queue subsystem for multithreading.
@@ -80,16 +74,16 @@ class URHO3D_API WorkQueue : public Object
 
 public:
     /// Construct.
-    WorkQueue(Context* context);
+    explicit WorkQueue(Context* context);
     /// Destruct.
-    ~WorkQueue();
+    ~WorkQueue() override;
 
     /// Create worker threads. Can only be called once.
     void CreateThreads(unsigned numThreads);
     /// Get pointer to an usable WorkItem from the item pool. Allocate one if no more free items.
     SharedPtr<WorkItem> GetFreeItem();
     /// Add a work item and resume worker threads.
-    void AddWorkItem(SharedPtr<WorkItem> item);
+    void AddWorkItem(const SharedPtr<WorkItem>& item);
     /// Remove a work item before it has started executing. Return true if successfully removed.
     bool RemoveWorkItem(SharedPtr<WorkItem> item);
     /// Remove a number of work items before they have started executing. Return the number of items successfully removed.
@@ -139,14 +133,14 @@ private:
     List<SharedPtr<WorkItem> > poolItems_;
     /// Work item collection. Accessed only by the main thread.
     List<SharedPtr<WorkItem> > workItems_;
-    /// Work item prioritized queue for worker threads. Pointers are guaranteed to be valid (point to workItems.)
+    /// Work item prioritized queue for worker threads. Pointers are guaranteed to be valid (point to workItems).
     List<WorkItem*> queue_;
     /// Worker queue mutex.
     Mutex queueMutex_;
     /// Shutting down flag.
-    volatile bool shutDown_;
+    std::atomic<bool> shutDown_;
     /// Pausing flag. Indicates the worker threads should not contend for the queue mutex.
-    volatile bool pausing_;
+    std::atomic<bool> pausing_;
     /// Paused flag. Indicates the queue mutex being locked to prevent worker threads using up CPU time.
     bool paused_;
     /// Completing work in the main thread flag.

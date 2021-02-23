@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,15 +36,21 @@ static const int MATRIX_CONVERSION_BUFFER_LENGTH = 256;
 
 class WString;
 
+class StringHash;
+template <class T, class U> class HashMap;
+
+/// Map of strings.
+using StringMap = HashMap<StringHash, String>;
+
 /// %String class.
 class URHO3D_API String
 {
 public:
-    typedef RandomAccessIterator<char> Iterator;
-    typedef RandomAccessConstIterator<char> ConstIterator;
+    using Iterator = RandomAccessIterator<char>;
+    using ConstIterator = RandomAccessConstIterator<char>;
 
     /// Construct empty.
-    String() :
+    String() noexcept :
         length_(0),
         capacity_(0),
         buffer_(&endZero)
@@ -60,8 +66,17 @@ public:
         *this = str;
     }
 
+    /// Move-construct from another string.
+    String(String && str) noexcept :
+        length_(0),
+        capacity_(0),
+        buffer_(&endZero)
+    {
+        Swap(str);
+    }
+
     /// Construct from a C string.
-    String(const char* str) :
+    String(const char* str) :   // NOLINT(google-explicit-constructor)
         length_(0),
         capacity_(0),
         buffer_(&endZero)
@@ -70,7 +85,7 @@ public:
     }
 
     /// Construct from a C string.
-    String(char* str) :
+    String(char* str) :         // NOLINT(google-explicit-constructor)
         length_(0),
         capacity_(0),
         buffer_(&endZero)
@@ -89,7 +104,7 @@ public:
     }
 
     /// Construct from a null-terminated wide character array.
-    String(const wchar_t* str) :
+    explicit String(const wchar_t* str) :
         length_(0),
         capacity_(0),
         buffer_(&endZero)
@@ -98,7 +113,7 @@ public:
     }
 
     /// Construct from a null-terminated wide character array.
-    String(wchar_t* str) :
+    explicit String(wchar_t* str) :
         length_(0),
         capacity_(0),
         buffer_(&endZero)
@@ -107,13 +122,14 @@ public:
     }
 
     /// Construct from a wide character string.
-    String(const WString& str);
+    explicit String(const WString& str);
 
     /// Construct from an integer.
     explicit String(int value);
     /// Construct from a short integer.
     explicit String(short value);
     /// Construct from a long integer.
+    /// @nobind
     explicit String(long value);
     /// Construct from a long long integer.
     explicit String(long long value);
@@ -122,6 +138,7 @@ public:
     /// Construct from an unsigned short integer.
     explicit String(unsigned short value);
     /// Construct from an unsigned long integer.
+    /// @nobind
     explicit String(unsigned long value);
     /// Construct from an unsigned long long integer.
     explicit String(unsigned long long value);
@@ -136,7 +153,7 @@ public:
     /// Construct from a character and fill length.
     explicit String(char value, unsigned length);
 
-    /// Construct from a convertable value.
+    /// Construct from a convertible value.
     template <class T> explicit String(const T& value) :
         length_(0),
         capacity_(0),
@@ -155,9 +172,19 @@ public:
     /// Assign a string.
     String& operator =(const String& rhs)
     {
-        Resize(rhs.length_);
-        CopyChars(buffer_, rhs.buffer_, rhs.length_);
+        if (&rhs != this)
+        {
+            Resize(rhs.length_);
+            CopyChars(buffer_, rhs.buffer_, rhs.length_);
+        }
 
+        return *this;
+    }
+
+    /// Move-assign a string.
+    String& operator =(String && rhs) noexcept
+    {
+        Swap(rhs);
         return *this;
     }
 
@@ -207,6 +234,7 @@ public:
     /// Add-assign (concatenate as string) a short integer.
     String& operator +=(short rhs);
     /// Add-assign (concatenate as string) a long integer.
+    /// @nobind
     String& operator +=(long rhs);
     /// Add-assign (concatenate as string) a long long integer.
     String& operator +=(long long rhs);
@@ -215,6 +243,7 @@ public:
     /// Add-assign (concatenate as string) a short unsigned integer.
     String& operator +=(unsigned short rhs);
     /// Add-assign (concatenate as string) a long unsigned integer.
+    /// @nobind
     String& operator +=(unsigned long rhs);
     /// Add-assign (concatenate as string) a long long unsigned integer.
     String& operator +=(unsigned long long rhs);
@@ -224,7 +253,7 @@ public:
     String& operator +=(bool rhs);
 
     /// Add-assign (concatenate as string) an arbitrary type.
-    template <class T> String operator +=(const T& rhs) { return *this += rhs.ToString(); }
+    template <class T> String& operator +=(const T& rhs) { return *this += rhs.ToString(); }
 
     /// Add a string.
     String operator +(const String& rhs) const
@@ -399,12 +428,14 @@ public:
     const char* CString() const { return buffer_; }
 
     /// Return length.
+    /// @property
     unsigned Length() const { return length_; }
 
     /// Return buffer capacity.
     unsigned Capacity() const { return capacity_; }
 
     /// Return whether the string is empty.
+    /// @property
     bool Empty() const { return length_ == 0; }
 
     /// Return comparison result with a string.
@@ -423,6 +454,7 @@ public:
     /// Construct UTF8 content from wide characters.
     void SetUTF8FromWChar(const wchar_t* str);
     /// Calculate number of characters in UTF8 content.
+    /// @property{get_utf8Length}
     unsigned LengthUTF8() const;
     /// Return byte offset to char in UTF8 content.
     unsigned ByteOffsetUTF8(unsigned index) const;
@@ -446,7 +478,7 @@ public:
         const char* ptr = buffer_;
         while (*ptr)
         {
-            hash = *ptr + (hash << 6) + (hash << 16) - hash;
+            hash = *ptr + (hash << 6u) + (hash << 16u) - hash;
             ++ptr;
         }
 
@@ -456,6 +488,7 @@ public:
     /// Return substrings split by a separator char. By default don't return empty strings.
     static Vector<String> Split(const char* str, char separator, bool keepEmptyStrings = false);
     /// Return a string by joining substrings with a 'glue' string.
+    /// @manualbind
     static String Joined(const Vector<String>& subStrings, const String& glue);
     /// Encode Unicode character to UTF8. Pointer will be incremented.
     static void EncodeUTF8(char*& dest, unsigned unicodeChar);
@@ -477,9 +510,9 @@ public:
     String& AppendWithFormatArgs(const char* formatString, va_list args);
 
     /// Compare two C strings.
-    static int Compare(const char* str1, const char* str2, bool caseSensitive);
+    static int Compare(const char* lhs, const char* rhs, bool caseSensitive);
 
-    /// Position for "not found."
+    /// Position for "not found".
     static const unsigned NPOS = 0xffffffff;
     /// Initial dynamic allocation size.
     static const unsigned MIN_CAPACITY = 8;
@@ -518,7 +551,7 @@ private:
     unsigned length_;
     /// Capacity, zero if buffer not allocated.
     unsigned capacity_;
-    /// String buffer, null if not allocated.
+    /// String buffer, point to &endZero if buffer is not allocated.
     char* buffer_;
 
     /// End zero for empty strings.
@@ -542,13 +575,14 @@ inline String operator +(const wchar_t* lhs, const String& rhs)
 }
 
 /// Wide character string. Only meant for converting from String and passing to the operating system where necessary.
+/// @nobind
 class URHO3D_API WString
 {
 public:
     /// Construct empty.
     WString();
     /// Construct from a string.
-    WString(const String& str);
+    explicit WString(const String& str);
     /// Destruct.
     ~WString();
 

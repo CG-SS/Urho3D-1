@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,31 +34,40 @@ class URHO3D_API NetworkPriority : public Component
 
 public:
     /// Construct.
-    NetworkPriority(Context* context);
+    explicit NetworkPriority(Context* context);
     /// Destruct.
-    virtual ~NetworkPriority();
+    ~NetworkPriority() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
-    /// Set base priority. Default 100 (send updates at full frequency.)
+    /// Set base priority. Default 100 (send updates at full frequency).
+    /// @property
     void SetBasePriority(float priority);
-    /// Set priority reduction distance factor. Default 0 (no effect.)
+    /// Set priority reduction distance factor. Default 0 (no effect).
+    /// @property
     void SetDistanceFactor(float factor);
-    /// Set minimum priority. Default 0 (no updates when far away enough.)
+    /// Set minimum priority. Default 0 (no updates when far away enough).
+    /// @property
     void SetMinPriority(float priority);
     /// Set whether updates to owner should be sent always at full rate. Default true.
+    /// @property
     void SetAlwaysUpdateOwner(bool enable);
 
     /// Return base priority.
+    /// @property
     float GetBasePriority() const { return basePriority_; }
 
     /// Return priority reduction distance factor.
+    /// @property
     float GetDistanceFactor() const { return distanceFactor_; }
 
     /// Return minimum priority.
+    /// @property
     float GetMinPriority() const { return minPriority_; }
 
     /// Return whether updates to owner should be sent always at full rate.
+    /// @property
     bool GetAlwaysUpdateOwner() const { return alwaysUpdateOwner_; }
 
     /// Increment and check priority accumulator. Return true if should update. Called by Connection.

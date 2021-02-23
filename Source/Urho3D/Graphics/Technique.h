@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+/// \file
 
 #pragma once
 
@@ -43,35 +45,48 @@ class URHO3D_API Pass : public RefCounted
 {
 public:
     /// Construct.
-    Pass(const String& passName);
+    explicit Pass(const String& name);
     /// Destruct.
-    ~Pass();
+    ~Pass() override;
 
     /// Set blend mode.
+    /// @property
     void SetBlendMode(BlendMode mode);
     /// Set culling mode override. By default culling mode is read from the material instead. Set the illegal culling mode MAX_CULLMODES to disable override again.
+    /// @property
     void SetCullMode(CullMode mode);
     /// Set depth compare mode.
+    /// @property
     void SetDepthTestMode(CompareMode mode);
     /// Set pass lighting mode, affects what shader variations will be attempted to be loaded.
+    /// @property
     void SetLightingMode(PassLightingMode mode);
     /// Set depth write on/off.
+    /// @property
     void SetDepthWrite(bool enable);
     /// Set alpha-to-coverage on/off.
+    /// @property
     void SetAlphaToCoverage(bool enable);
     /// Set whether requires desktop level hardware.
+    /// @property{set_desktop}
     void SetIsDesktop(bool enable);
     /// Set vertex shader name.
+    /// @property
     void SetVertexShader(const String& name);
     /// Set pixel shader name.
+    /// @property
     void SetPixelShader(const String& name);
     /// Set vertex shader defines. Separate multiple defines with spaces.
+    /// @property
     void SetVertexShaderDefines(const String& defines);
     /// Set pixel shader defines. Separate multiple defines with spaces.
+    /// @property
     void SetPixelShaderDefines(const String& defines);
     /// Set vertex shader define excludes. Use to mark defines that the shader code will not recognize, to prevent compiling redundant shader variations.
+    /// @property
     void SetVertexShaderDefineExcludes(const String& excludes);
     /// Set pixel shader define excludes. Use to mark defines that the shader code will not recognize, to prevent compiling redundant shader variations.
+    /// @property
     void SetPixelShaderDefineExcludes(const String& excludes);
     /// Reset shader pointers.
     void ReleaseShaders();
@@ -85,45 +100,58 @@ public:
     unsigned GetIndex() const { return index_; }
 
     /// Return blend mode.
+    /// @property
     BlendMode GetBlendMode() const { return blendMode_; }
 
     /// Return culling mode override. If pass is not overriding culling mode (default), the illegal mode MAX_CULLMODES is returned.
+    /// @property
     CullMode GetCullMode() const { return cullMode_; }
 
     /// Return depth compare mode.
+    /// @property
     CompareMode GetDepthTestMode() const { return depthTestMode_; }
 
     /// Return pass lighting mode.
+    /// @property
     PassLightingMode GetLightingMode() const { return lightingMode_; }
 
     /// Return last shaders loaded frame number.
     unsigned GetShadersLoadedFrameNumber() const { return shadersLoadedFrameNumber_; }
 
     /// Return depth write mode.
+    /// @property
     bool GetDepthWrite() const { return depthWrite_; }
 
     /// Return alpha-to-coverage mode.
+    /// @property
     bool GetAlphaToCoverage() const { return alphaToCoverage_; }
 
     /// Return whether requires desktop level hardware.
+    /// @property
     bool IsDesktop() const { return isDesktop_; }
 
     /// Return vertex shader name.
+    /// @property
     const String& GetVertexShader() const { return vertexShaderName_; }
 
     /// Return pixel shader name.
+    /// @property
     const String& GetPixelShader() const { return pixelShaderName_; }
 
     /// Return vertex shader defines.
+    /// @property
     const String& GetVertexShaderDefines() const { return vertexShaderDefines_; }
 
     /// Return pixel shader defines.
+    /// @property
     const String& GetPixelShaderDefines() const { return pixelShaderDefines_; }
-    
+
     /// Return vertex shader define excludes.
+    /// @property
     const String& GetVertexShaderDefineExcludes() const { return vertexShaderDefineExcludes_; }
 
     /// Return pixel shader define excludes.
+    /// @property
     const String& GetPixelShaderDefineExcludes() const { return pixelShaderDefineExcludes_; }
 
     /// Return vertex shaders.
@@ -193,59 +221,66 @@ class URHO3D_API Technique : public Resource
 
 public:
     /// Construct.
-    Technique(Context* context);
+    explicit Technique(Context* context);
     /// Destruct.
-    ~Technique();
+    ~Technique() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
-    virtual bool BeginLoad(Deserializer& source);
+    bool BeginLoad(Deserializer& source) override;
 
     /// Set whether requires desktop level hardware.
+    /// @property{set_desktop}
     void SetIsDesktop(bool enable);
     /// Create a new pass.
-    Pass* CreatePass(const String& passName);
+    Pass* CreatePass(const String& name);
     /// Remove a pass.
-    void RemovePass(const String& passName);
+    void RemovePass(const String& name);
     /// Reset shader pointers in all passes.
     void ReleaseShaders();
     /// Clone the technique. Passes will be deep copied to allow independent modification.
     SharedPtr<Technique> Clone(const String& cloneName = String::EMPTY) const;
 
     /// Return whether requires desktop level hardware.
+    /// @property
     bool IsDesktop() const { return isDesktop_; }
 
     /// Return whether technique is supported by the current hardware.
+    /// @property
     bool IsSupported() const { return !isDesktop_ || desktopSupport_; }
 
     /// Return whether has a pass.
-    bool HasPass(unsigned passIndex) const { return passIndex < passes_.Size() && passes_[passIndex].Get() != 0; }
+    bool HasPass(unsigned passIndex) const { return passIndex < passes_.Size() && passes_[passIndex].Get() != nullptr; }
 
     /// Return whether has a pass by name. This overload should not be called in time-critical rendering loops; use a pre-acquired pass index instead.
-    bool HasPass(const String& passName) const;
+    bool HasPass(const String& name) const;
 
     /// Return a pass, or null if not found.
-    Pass* GetPass(unsigned passIndex) const { return passIndex < passes_.Size() ? passes_[passIndex].Get() : 0; }
+    Pass* GetPass(unsigned passIndex) const { return passIndex < passes_.Size() ? passes_[passIndex].Get() : nullptr; }
 
     /// Return a pass by name, or null if not found. This overload should not be called in time-critical rendering loops; use a pre-acquired pass index instead.
-    Pass* GetPass(const String& passName) const;
+    Pass* GetPass(const String& name) const;
 
     /// Return a pass that is supported for rendering, or null if not found.
     Pass* GetSupportedPass(unsigned passIndex) const
     {
-        Pass* pass = passIndex < passes_.Size() ? passes_[passIndex].Get() : 0;
-        return pass && (!pass->IsDesktop() || desktopSupport_) ? pass : 0;
+        Pass* pass = passIndex < passes_.Size() ? passes_[passIndex].Get() : nullptr;
+        return pass && (!pass->IsDesktop() || desktopSupport_) ? pass : nullptr;
     }
 
     /// Return a supported pass by name. This overload should not be called in time-critical rendering loops; use a pre-acquired pass index instead.
-    Pass* GetSupportedPass(const String& passName) const;
+    Pass* GetSupportedPass(const String& name) const;
 
     /// Return number of passes.
+    /// @property
     unsigned GetNumPasses() const;
     /// Return all pass names.
+    /// @property
     Vector<String> GetPassNames() const;
     /// Return all passes.
+    /// @property
     PODVector<Pass*> GetPasses() const;
 
     /// Return a clone with added shader compilation defines. Called internally by Material.

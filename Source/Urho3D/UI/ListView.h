@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,8 +20,11 @@
 // THE SOFTWARE.
 //
 
+/// \file
+
 #pragma once
 
+#include "../Input/InputConstants.h"
 #include "../UI/ScrollView.h"
 
 namespace Urho3D
@@ -45,16 +48,24 @@ class URHO3D_API ListView : public ScrollView
 
 public:
     /// Construct.
-    ListView(Context* context);
+    explicit ListView(Context* context);
     /// Destruct.
-    virtual ~ListView();
+    ~ListView() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// React to a key press.
-    virtual void OnKey(int key, int buttons, int qualifiers);
+    void OnKey(Key key, MouseButtonFlags buttons, QualifierFlags qualifiers) override;
     /// React to resize.
-    virtual void OnResize(const IntVector2& newSize, const IntVector2& delta);
+    void OnResize(const IntVector2& newSize, const IntVector2& delta) override;
+
+    /// Manually update layout on internal elements.
+    void UpdateInternalLayout();
+    /// Disable automatic layout update for internal elements.
+    void DisableInternalLayoutUpdate();
+    /// Enable automatic layout update for internal elements.
+    void EnableInternalLayoutUpdate();
 
     /// Add item to the end of the list.
     void AddItem(UIElement* item);
@@ -62,7 +73,7 @@ public:
     /// If index is greater than the total items then the new item is inserted at the end of the list.
     /// In hierarchy mode, if index is greater than the index of last children of the specified parent item then the new item is inserted next to the last children.
     /// And if the index is lesser than the index of the parent item itself then the new item is inserted before the first child item.
-    void InsertItem(unsigned index, UIElement* item, UIElement* parentItem = 0);
+    void InsertItem(unsigned index, UIElement* item, UIElement* parentItem = nullptr);
     /// Remove specific item, starting search at the specified index if provided. In hierarchy mode will also remove any children.
     void RemoveItem(UIElement* item, unsigned index = 0);
     /// Remove item at index. In hierarchy mode will also remove any children.
@@ -70,6 +81,7 @@ public:
     /// Remove all items.
     void RemoveAllItems();
     /// Set selection.
+    /// @property
     void SetSelection(unsigned index);
     /// Set multiple selected items. If multiselect disabled, sets only the first.
     void SetSelections(const PODVector<unsigned>& indices);
@@ -84,17 +96,23 @@ public:
     /// Clear selection.
     void ClearSelection();
     /// Set selected items' highlight mode.
+    /// @property
     void SetHighlightMode(HighlightMode mode);
     /// Enable multiselect.
+    /// @property
     void SetMultiselect(bool enable);
     /// \brief Enable hierarchy mode. Allows items to have parent-child relationship at different indent level and the ability to expand/collapse child items.
     /// All items in the list will be lost during mode change.
+    /// @property
     void SetHierarchyMode(bool enable);
     /// Set base indent, i.e. the indent level of the ultimate parent item.
+    /// @property
     void SetBaseIndent(int baseIndent);
     /// Enable clearing of selection on defocus.
+    /// @property
     void SetClearSelectionOnDefocus(bool enable);
     /// Enable reacting to click end instead of click start for item selection. Default false.
+    /// @property
     void SetSelectOnClickEnd(bool enable);
 
     /// Expand item at index. Only has effect in hierarchy mode.
@@ -103,46 +121,58 @@ public:
     void ToggleExpand(unsigned index, bool recursive = false);
 
     /// Return number of items.
+    /// @property
     unsigned GetNumItems() const;
     /// Return item at index.
+    /// @property{get_items}
     UIElement* GetItem(unsigned index) const;
     /// Return all items.
     PODVector<UIElement*> GetItems() const;
     /// Return index of item, or M_MAX_UNSIGNED If not found.
     unsigned FindItem(UIElement* item) const;
     /// Return first selected index, or M_MAX_UNSIGNED if none selected.
+    /// @property
     unsigned GetSelection() const;
 
     /// Return all selected indices.
+    /// @property
     const PODVector<unsigned>& GetSelections() const { return selections_; }
 
     /// Copy selected items to system clipboard. Currently only applicable to Text items.
     void CopySelectedItemsToClipboard() const;
     /// Return first selected item, or null if none selected.
+    /// @property
     UIElement* GetSelectedItem() const;
     /// Return all selected items.
+    /// @property
     PODVector<UIElement*> GetSelectedItems() const;
-    /// Return whether an item at index is seleccted.
+    /// Return whether an item at index is selected.
     bool IsSelected(unsigned index) const;
     /// Return whether an item at index has its children expanded (in hierarchy mode only).
     bool IsExpanded(unsigned index) const;
 
     /// Return highlight mode.
+    /// @property
     HighlightMode GetHighlightMode() const { return highlightMode_; }
 
     /// Return whether multiselect enabled.
+    /// @property
     bool GetMultiselect() const { return multiselect_; }
 
     /// Return whether selection is cleared on defocus.
+    /// @property
     bool GetClearSelectionOnDefocus() const { return clearSelectionOnDefocus_; }
 
     /// Return whether reacts to click end instead of click start for item selection.
+    /// @property
     bool GetSelectOnClickEnd() const { return selectOnClickEnd_; }
 
     /// Return whether hierarchy mode enabled.
+    /// @property
     bool GetHierarchyMode() const { return hierarchyMode_; }
 
     /// Return base indent.
+    /// @property
     int GetBaseIndent() const { return baseIndent_; }
 
     /// Ensure full visibility of the item.
@@ -152,7 +182,7 @@ public:
 
 protected:
     /// Filter implicit attributes in serialization process.
-    virtual bool FilterImplicitAttributes(XMLElement& dest) const;
+    bool FilterImplicitAttributes(XMLElement& dest) const override;
     /// Update selection effect when selection or focus changes.
     void UpdateSelectionEffect();
 
@@ -182,7 +212,7 @@ private:
     void HandleItemFocusChanged(StringHash eventType, VariantMap& eventData);
     /// Handle focus changed.
     void HandleFocusChanged(StringHash eventType, VariantMap& eventData);
-    /// Update subscription to UI click events
+    /// Update subscription to UI click events.
     void UpdateUIClickSubscription();
 };
 

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,9 +48,7 @@ Button::Button(Context* context) :
     focusMode_ = FM_FOCUSABLE;
 }
 
-Button::~Button()
-{
-}
+Button::~Button() = default;
 
 void Button::RegisterObject(Context* context)
 {
@@ -90,15 +88,22 @@ void Button::Update(float timeStep)
 void Button::GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor)
 {
     IntVector2 offset(IntVector2::ZERO);
-    if (hovering_ || HasFocus())
-        offset += hoverOffset_;
-    if (pressed_ || selected_)
-        offset += pressedOffset_;
+    if (enabled_)
+    {
+        if (hovering_ || HasFocus())
+            offset += hoverOffset_;
+        if (pressed_ || selected_)
+            offset += pressedOffset_;
+    }
+    else
+    {
+        offset += disabledOffset_;
+    }
 
     BorderImage::GetBatches(batches, vertexData, currentScissor, offset);
 }
 
-void Button::OnClickBegin(const IntVector2& position, const IntVector2& screenPosition, int button, int buttons, int qualifiers,
+void Button::OnClickBegin(const IntVector2& position, const IntVector2& screenPosition, MouseButton button, MouseButtonFlags buttons, QualifierFlags qualifiers,
     Cursor* cursor)
 {
     if (button == MOUSEB_LEFT)
@@ -115,7 +120,7 @@ void Button::OnClickBegin(const IntVector2& position, const IntVector2& screenPo
     }
 }
 
-void Button::OnClickEnd(const IntVector2& position, const IntVector2& screenPosition, int button, int buttons, int qualifiers,
+void Button::OnClickEnd(const IntVector2& position, const IntVector2& screenPosition, MouseButton button, MouseButtonFlags buttons, QualifierFlags qualifiers,
     Cursor* cursor, UIElement* beginElement)
 {
     if (pressed_ && button == MOUSEB_LEFT)
@@ -133,19 +138,19 @@ void Button::OnClickEnd(const IntVector2& position, const IntVector2& screenPosi
     }
 }
 
-void Button::OnDragMove(const IntVector2& position, const IntVector2& screenPosition, const IntVector2& deltaPos, int buttons,
-    int qualifiers, Cursor* cursor)
+void Button::OnDragMove(const IntVector2& position, const IntVector2& screenPosition, const IntVector2& deltaPos, MouseButtonFlags buttons,
+    QualifierFlags qualifiers, Cursor* cursor)
 {
     SetPressed(true);
 }
 
-void Button::OnKey(int key, int buttons, int qualifiers)
+void Button::OnKey(Key key, MouseButtonFlags buttons, QualifierFlags qualifiers)
 {
     if (HasFocus() && (key == KEY_RETURN || key == KEY_RETURN2 || key == KEY_KP_ENTER || key == KEY_SPACE))
     {
         // Simulate LMB click
-        OnClickBegin(IntVector2(), IntVector2(), MOUSEB_LEFT, 0, 0, 0);
-        OnClickEnd(IntVector2(), IntVector2(), MOUSEB_LEFT, 0, 0, 0, 0);
+        OnClickBegin(IntVector2(), IntVector2(), MOUSEB_LEFT, MOUSEB_NONE, QUAL_NONE, nullptr);
+        OnClickEnd(IntVector2(), IntVector2(), MOUSEB_LEFT, MOUSEB_NONE, QUAL_NONE, nullptr, nullptr);
     }
 }
 

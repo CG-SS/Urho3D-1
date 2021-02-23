@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,9 @@
 #include "../Precompiled.h"
 
 #include "../Core/Context.h"
+#include "../Core/ProcessUtils.h"
 #include "../Core/Thread.h"
+#include "../Core/Profiler.h"
 #include "../IO/Log.h"
 
 #include "../DebugNew.h"
@@ -39,9 +41,7 @@ TypeInfo::TypeInfo(const char* typeName, const TypeInfo* baseTypeInfo) :
 {
 }
 
-TypeInfo::~TypeInfo()
-{
-}
+TypeInfo::~TypeInfo() = default;
 
 bool TypeInfo::IsTypeOf(StringHash type) const
 {
@@ -59,10 +59,13 @@ bool TypeInfo::IsTypeOf(StringHash type) const
 
 bool TypeInfo::IsTypeOf(const TypeInfo* typeInfo) const
 {
+    if (typeInfo == nullptr)
+        return false;
+
     const TypeInfo* current = this;
     while (current)
     {
-        if (current == typeInfo)
+        if (current == typeInfo || current->GetType() == typeInfo->GetType())
             return true;
 
         current = current->GetBaseTypeInfo();
@@ -72,7 +75,8 @@ bool TypeInfo::IsTypeOf(const TypeInfo* typeInfo) const
 }
 
 Object::Object(Context* context) :
-    context_(context)
+    context_(context),
+    blockEvents_(false)
 {
     assert(context_);
 }
@@ -85,10 +89,13 @@ Object::~Object()
 
 void Object::OnEvent(Object* sender, StringHash eventType, VariantMap& eventData)
 {
+    if (blockEvents_)
+        return;
+
     // Make a copy of the context pointer in case the object is destroyed during event handler invocation
     Context* context = context_;
-    EventHandler* specific = 0;
-    EventHandler* nonSpecific = 0;
+    EventHandler* specific = nullptr;
+    EventHandler* nonSpecific = nullptr;
 
     EventHandler* handler = eventHandlers_.First();
     while (handler)
@@ -111,7 +118,7 @@ void Object::OnEvent(Object* sender, StringHash eventType, VariantMap& eventData
     {
         context->SetEventHandler(specific);
         specific->Invoke(eventData);
-        context->SetEventHandler(0);
+        context->SetEventHandler(nullptr);
         return;
     }
 
@@ -119,7 +126,7 @@ void Object::OnEvent(Object* sender, StringHash eventType, VariantMap& eventData
     {
         context->SetEventHandler(nonSpecific);
         nonSpecific->Invoke(eventData);
-        context->SetEventHandler(0);
+        context->SetEventHandler(nullptr);
     }
 }
 
@@ -138,10 +145,10 @@ void Object::SubscribeToEvent(StringHash eventType, EventHandler* handler)
     if (!handler)
         return;
 
-    handler->SetSenderAndEventType(0, eventType);
+    handler->SetSenderAndEventType(nullptr, eventType);
     // Remove old event handler first
     EventHandler* previous;
-    EventHandler* oldHandler = FindSpecificEventHandler(0, eventType, &previous);
+    EventHandler* oldHandler = FindSpecificEventHandler(nullptr, eventType, &previous);
     if (oldHandler)
     {
         eventHandlers_.Erase(oldHandler, previous);
@@ -179,7 +186,6 @@ void Object::SubscribeToEvent(Object* sender, StringHash eventType, EventHandler
     }
 }
 
-#if URHO3D_CXX11
 void Object::SubscribeToEvent(StringHash eventType, const std::function<void(StringHash, VariantMap&)>& function, void* userData/*=0*/)
 {
     SubscribeToEvent(eventType, new EventHandler11Impl(function, userData));
@@ -189,7 +195,6 @@ void Object::SubscribeToEvent(Object* sender, StringHash eventType, const std::f
 {
     SubscribeToEvent(sender, eventType, new EventHandler11Impl(function, userData));
 }
-#endif
 
 void Object::UnsubscribeFromEvent(StringHash eventType)
 {
@@ -264,7 +269,7 @@ void Object::UnsubscribeFromAllEvents()
 void Object::UnsubscribeFromAllEventsExcept(const PODVector<StringHash>& exceptions, bool onlyUserData)
 {
     EventHandler* handler = eventHandlers_.First();
-    EventHandler* previous = 0;
+    EventHandler* previous = nullptr;
 
     while (handler)
     {
@@ -301,6 +306,16 @@ void Object::SendEvent(StringHash eventType, VariantMap& eventData)
         return;
     }
 
+    if (blockEvents_)
+        return;
+
+#ifdef URHO3D_TRACY_PROFILING
+    URHO3D_PROFILE_COLOR(SendEvent, URHO3D_PROFILE_EVENT_COLOR);
+
+    const String& eventName = GetEventNameRegister().GetString(eventType);
+    URHO3D_PROFILE_STR(eventName.CString(), eventName.Length());
+#endif
+
     // Make a weak pointer to self to check for destruction during event handling
     WeakPtr<Object> self(this);
     Context* context = context_;
@@ -315,7 +330,8 @@ void Object::SendEvent(StringHash eventType, VariantMap& eventData)
     {
         group->BeginSendEvent();
 
-        for (unsigned i = 0; i < group->receivers_.Size(); ++i)
+        const unsigned numReceivers = group->receivers_.Size();
+        for (unsigned i = 0; i < numReceivers; ++i)
         {
             Object* receiver = group->receivers_[i];
             // Holes may exist if receivers removed during send
@@ -346,7 +362,8 @@ void Object::SendEvent(StringHash eventType, VariantMap& eventData)
 
         if (processed.Empty())
         {
-            for (unsigned i = 0; i < group->receivers_.Size(); ++i)
+            const unsigned numReceivers = group->receivers_.Size();
+            for (unsigned i = 0; i < numReceivers; ++i)
             {
                 Object* receiver = group->receivers_[i];
                 if (!receiver)
@@ -365,7 +382,8 @@ void Object::SendEvent(StringHash eventType, VariantMap& eventData)
         else
         {
             // If there were specific receivers, check that the event is not sent doubly to them
-            for (unsigned i = 0; i < group->receivers_.Size(); ++i)
+            const unsigned numReceivers = group->receivers_.Size();
+            for (unsigned i = 0; i < numReceivers; ++i)
             {
                 Object* receiver = group->receivers_[i];
                 if (!receiver || processed.Contains(receiver))
@@ -425,7 +443,7 @@ EventHandler* Object::GetEventHandler() const
 
 bool Object::HasSubscribedToEvent(StringHash eventType) const
 {
-    return FindEventHandler(eventType) != 0;
+    return FindEventHandler(eventType) != nullptr;
 }
 
 bool Object::HasSubscribedToEvent(Object* sender, StringHash eventType) const
@@ -433,7 +451,7 @@ bool Object::HasSubscribedToEvent(Object* sender, StringHash eventType) const
     if (!sender)
         return false;
     else
-        return FindSpecificEventHandler(sender, eventType) != 0;
+        return FindSpecificEventHandler(sender, eventType) != nullptr;
 }
 
 const String& Object::GetCategory() const
@@ -452,7 +470,7 @@ EventHandler* Object::FindEventHandler(StringHash eventType, EventHandler** prev
 {
     EventHandler* handler = eventHandlers_.First();
     if (previous)
-        *previous = 0;
+        *previous = nullptr;
 
     while (handler)
     {
@@ -463,14 +481,14 @@ EventHandler* Object::FindEventHandler(StringHash eventType, EventHandler** prev
         handler = eventHandlers_.Next(handler);
     }
 
-    return 0;
+    return nullptr;
 }
 
 EventHandler* Object::FindSpecificEventHandler(Object* sender, EventHandler** previous) const
 {
     EventHandler* handler = eventHandlers_.First();
     if (previous)
-        *previous = 0;
+        *previous = nullptr;
 
     while (handler)
     {
@@ -481,14 +499,14 @@ EventHandler* Object::FindSpecificEventHandler(Object* sender, EventHandler** pr
         handler = eventHandlers_.Next(handler);
     }
 
-    return 0;
+    return nullptr;
 }
 
 EventHandler* Object::FindSpecificEventHandler(Object* sender, StringHash eventType, EventHandler** previous) const
 {
     EventHandler* handler = eventHandlers_.First();
     if (previous)
-        *previous = 0;
+        *previous = nullptr;
 
     while (handler)
     {
@@ -499,13 +517,13 @@ EventHandler* Object::FindSpecificEventHandler(Object* sender, StringHash eventT
         handler = eventHandlers_.Next(handler);
     }
 
-    return 0;
+    return nullptr;
 }
 
 void Object::RemoveEventSender(Object* sender)
 {
     EventHandler* handler = eventHandlers_.First();
-    EventHandler* previous = 0;
+    EventHandler* previous = nullptr;
 
     while (handler)
     {
@@ -523,24 +541,10 @@ void Object::RemoveEventSender(Object* sender)
     }
 }
 
-
-Urho3D::StringHash EventNameRegistrar::RegisterEventName(const char* eventName)
+StringHashRegister& GetEventNameRegister()
 {
-    StringHash id(eventName);
-    GetEventNameMap()[id] = eventName;
-    return id;
-}
-
-const String& EventNameRegistrar::GetEventName(StringHash eventID)
-{
-    HashMap<StringHash, String>::ConstIterator it = GetEventNameMap().Find(eventID);
-    return  it != GetEventNameMap().End() ? it->second_ : String::EMPTY ;
-}
-
-HashMap<StringHash, String>& EventNameRegistrar::GetEventNameMap()
-{
-    static HashMap<StringHash, String> eventNames_;
-    return eventNames_;
+    static StringHashRegister eventNameRegister(false /*non thread safe*/);
+    return eventNameRegister;
 }
 
 }

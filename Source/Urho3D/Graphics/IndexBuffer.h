@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,18 +37,19 @@ class URHO3D_API IndexBuffer : public Object, public GPUObject
 
 public:
     /// Construct. Optionally force headless (no GPU-side buffer) operation.
-    IndexBuffer(Context* context, bool forceHeadless = false);
+    explicit IndexBuffer(Context* context, bool forceHeadless = false);
     /// Destruct.
-    virtual ~IndexBuffer();
+    ~IndexBuffer() override;
 
     /// Mark the buffer destroyed on graphics context destruction. May be a no-op depending on the API.
-    virtual void OnDeviceLost();
+    void OnDeviceLost() override;
     /// Recreate the buffer and restore data if applicable. May be a no-op depending on the API.
-    virtual void OnDeviceReset();
+    void OnDeviceReset() override;
     /// Release buffer.
-    virtual void Release();
+    void Release() override;
 
     /// Enable shadowing in CPU memory. Shadowing is forced on if the graphics subsystem does not exist.
+    /// @property
     void SetShadowed(bool enable);
     /// Set size and vertex elements and dynamic mode. Previous data will be lost.
     bool SetSize(unsigned indexCount, bool largeIndices, bool dynamic = false);
@@ -62,18 +63,22 @@ public:
     void Unlock();
 
     /// Return whether CPU memory shadowing is enabled.
+    /// @property
     bool IsShadowed() const { return shadowed_; }
 
     /// Return whether is dynamic.
+    /// @property
     bool IsDynamic() const { return dynamic_; }
 
     /// Return whether is currently locked.
     bool IsLocked() const { return lockState_ != LOCK_NONE; }
 
     /// Return number of indices.
+    /// @property
     unsigned GetIndexCount() const { return indexCount_; }
 
     /// Return index size in bytes.
+    /// @property
     unsigned GetIndexSize() const { return indexSize_; }
 
     /// Return used vertex range from index range.

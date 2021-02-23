@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+/// \file
 
 #pragma once
 
@@ -69,16 +71,17 @@ class URHO3D_API ValueAnimation : public Resource
 
 public:
     /// Construct.
-    ValueAnimation(Context* context);
+    explicit ValueAnimation(Context* context);
     /// Destruct.
-    virtual ~ValueAnimation();
+    ~ValueAnimation() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
-    virtual bool BeginLoad(Deserializer& source);
+    bool BeginLoad(Deserializer& source) override;
     /// Save resource. Return true if successful.
-    virtual bool Save(Serializer& dest) const;
+    bool Save(Serializer& dest) const override;
     /// Load from XML data. Return true if successful.
     bool LoadXML(const XMLElement& source);
     /// Save as XML data. Return true if successful.
@@ -91,10 +94,13 @@ public:
     /// Set owner.
     void SetOwner(void* owner);
     /// Set interpolation method.
+    /// @property
     void SetInterpolationMethod(InterpMethod method);
     /// Set spline tension, should be between 0.0f and 1.0f, but this is not a must.
+    /// @property
     void SetSplineTension(float tension);
     /// Set value type.
+    /// @property
     void SetValueType(VariantType valueType);
 
     /// Set key frame.
@@ -109,12 +115,15 @@ public:
     void* GetOwner() const { return owner_; }
 
     /// Return interpolation method.
+    /// @property
     InterpMethod GetInterpolationMethod() const { return interpolationMethod_; }
 
     /// Return spline tension.
+    /// @property
     float GetSplineTension() const { return splineTension_; }
 
     /// Return value type.
+    /// @property
     VariantType GetValueType() const { return valueType_; }
 
     /// Return begin time.
@@ -124,7 +133,10 @@ public:
     float GetEndTime() const { return endTime_; }
 
     /// Return animation value.
-    Variant GetAnimationValue(float scaledTime);
+    Variant GetAnimationValue(float scaledTime) const;
+
+    /// Return all key frames.
+    const Vector<VAnimKeyFrame>& GetKeyFrames() const { return keyFrames_; }
 
     /// Has event frames.
     bool HasEventFrames() const { return !eventFrames_.Empty(); }
@@ -136,9 +148,9 @@ protected:
     /// Linear interpolation.
     Variant LinearInterpolation(unsigned index1, unsigned index2, float scaledTime) const;
     /// Spline interpolation.
-    Variant SplineInterpolation(unsigned index1, unsigned index2, float scaledTime);
+    Variant SplineInterpolation(unsigned index1, unsigned index2, float scaledTime) const;
     /// Update spline tangents.
-    void UpdateSplineTangents();
+    void UpdateSplineTangents() const;
     /// Return (value1 - value2) * t.
     Variant SubstractAndMultiply(const Variant& value1, const Variant& value2, float t) const;
 
@@ -159,9 +171,9 @@ protected:
     /// Key frames.
     Vector<VAnimKeyFrame> keyFrames_;
     /// Spline tangents.
-    VariantVector splineTangents_;
+    mutable VariantVector splineTangents_;
     /// Spline tangents dirty.
-    bool splineTangentsDirty_;
+    mutable bool splineTangentsDirty_;
     /// Event frames.
     Vector<VAnimEventFrame> eventFrames_;
 };

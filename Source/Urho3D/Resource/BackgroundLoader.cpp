@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -50,6 +50,8 @@ BackgroundLoader::~BackgroundLoader()
 
 void BackgroundLoader::ThreadFunction()
 {
+    URHO3D_PROFILE_THREAD("BackgroundLoader Thread");
+
     while (shouldRun_)
     {
         backgroundLoadMutex_.Acquire();
@@ -242,7 +244,7 @@ void BackgroundLoader::FinishResources(int maxMs)
             }
 
             // Break when the time limit passed so that we keep sufficient FPS
-            if (timer.GetUSec(false) >= maxMs * 1000)
+            if (timer.GetUSec(false) >= maxMs * 1000LL)
                 break;
         }
 
@@ -264,13 +266,19 @@ void BackgroundLoader::FinishBackgroundLoading(BackgroundLoadItem& item)
     // If BeginLoad() phase was successful, call EndLoad() and get the final success/failure result
     if (success)
     {
-#ifdef URHO3D_PROFILING
+#ifdef URHO3D_TRACY_PROFILING
+        URHO3D_PROFILE_COLOR(FinishBackgroundLoading, URHO3D_PROFILE_RESOURCE_COLOR);
+
+        String profileBlockName("Finish" + resource->GetTypeName());
+        URHO3D_PROFILE_STR(profileBlockName.CString(), profileBlockName.Length());
+#elif defined(URHO3D_PROFILING)
         String profileBlockName("Finish" + resource->GetTypeName());
 
-        Profiler* profiler = owner_->GetSubsystem<Profiler>();
+        auto* profiler = owner_->GetSubsystem<Profiler>();
         if (profiler)
             profiler->BeginBlock(profileBlockName.CString());
 #endif
+
         URHO3D_LOGDEBUG("Finishing background loaded resource " + resource->GetName());
         success = resource->EndLoad();
 
@@ -290,6 +298,10 @@ void BackgroundLoader::FinishBackgroundLoading(BackgroundLoadItem& item)
         owner_->SendEvent(E_LOADFAILED, eventData);
     }
 
+    // Store to the cache just before sending the event; use same mechanism as for manual resources
+    if (success || owner_->GetReturnFailedResources())
+        owner_->AddManualResource(resource);
+
     // Send event, either success or failure
     {
         using namespace ResourceBackgroundLoaded;
@@ -300,10 +312,6 @@ void BackgroundLoader::FinishBackgroundLoading(BackgroundLoadItem& item)
         eventData[P_RESOURCE] = resource;
         owner_->SendEvent(E_RESOURCEBACKGROUNDLOADED, eventData);
     }
-
-    // Store to the cache; use same mechanism as for manual resources
-    if (success || owner_->GetReturnFailedResources())
-        owner_->AddManualResource(resource);
 }
 
 }

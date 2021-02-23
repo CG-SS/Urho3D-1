@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,12 +37,6 @@ class RigidBody2D;
 /// 2D Physics raycast hit.
 struct URHO3D_API PhysicsRaycastResult2D
 {
-    /// Construct with defaults.
-    PhysicsRaycastResult2D() :
-        body_(0)
-    {
-    }
-
     /// Test for inequality, added to prevent GCC from complaining.
     bool operator !=(const PhysicsRaycastResult2D& rhs) const
     {
@@ -54,9 +48,9 @@ struct URHO3D_API PhysicsRaycastResult2D
     /// Hit worldspace normal.
     Vector2 normal_;
     /// Hit distance from ray origin.
-    float distance_;
+    float distance_{};
     /// Rigid body that was hit.
-    RigidBody2D* body_;
+    RigidBody2D* body_{};
 };
 
 /// Delayed world transform assignment for parented 2D rigidbodies.
@@ -79,70 +73,85 @@ class URHO3D_API PhysicsWorld2D : public Component, public b2ContactListener, pu
 
 public:
     /// Construct.
-    PhysicsWorld2D(Context* context);
+    explicit PhysicsWorld2D(Context* context);
     /// Destruct.
-    virtual ~PhysicsWorld2D();
+    ~PhysicsWorld2D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Visualize the component as debug geometry.
-    virtual void DrawDebugGeometry(DebugRenderer* debug, bool depthTest);
+    void DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override;
 
     // Implement b2ContactListener
     /// Called when two fixtures begin to touch.
-    virtual void BeginContact(b2Contact* contact);
+    void BeginContact(b2Contact* contact) override;
     /// Called when two fixtures cease to touch.
-    virtual void EndContact(b2Contact* contact);
+    void EndContact(b2Contact* contact) override;
     /// Called when contact is updated.
-    virtual void PreSolve(b2Contact* contact, const b2Manifold* oldManifold);
+    void PreSolve(b2Contact* contact, const b2Manifold* oldManifold) override;
 
     // Implement b2Draw
     /// Draw a closed polygon provided in CCW order.
-    virtual void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color);
+    void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override;
     /// Draw a solid closed polygon provided in CCW order.
-    virtual void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color);
+    void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override;
     /// Draw a circle.
-    virtual void DrawCircle(const b2Vec2& center, float32 radius, const b2Color& color);
+    void DrawCircle(const b2Vec2& center, float32 radius, const b2Color& color) override;
     /// Draw a solid circle.
-    virtual void DrawSolidCircle(const b2Vec2& center, float32 radius, const b2Vec2& axis, const b2Color& color);
+    void DrawSolidCircle(const b2Vec2& center, float32 radius, const b2Vec2& axis, const b2Color& color) override;
     /// Draw a line segment.
-    virtual void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color);
+    void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color) override;
     /// Draw a transform. Choose your own length scale.
-    virtual void DrawTransform(const b2Transform& xf);
+    void DrawTransform(const b2Transform& xf) override;
     /// Draw a point.
-    virtual void DrawPoint(const b2Vec2& p, float32 size, const b2Color& color);
+    void DrawPoint(const b2Vec2& p, float32 size, const b2Color& color) override;
 
     /// Step the simulation forward.
     void Update(float timeStep);
     /// Add debug geometry to the debug renderer.
     void DrawDebugGeometry();
     /// Enable or disable automatic physics simulation during scene update. Enabled by default.
+    /// @property
     void SetUpdateEnabled(bool enable);
     /// Set draw shape.
+    /// @property
     void SetDrawShape(bool drawShape);
     /// Set draw joint.
+    /// @property
     void SetDrawJoint(bool drawJoint);
     /// Set draw aabb.
+    /// @property
     void SetDrawAabb(bool drawAabb);
     /// Set draw pair.
+    /// @property
     void SetDrawPair(bool drawPair);
     /// Set draw center of mass.
+    /// @property
     void SetDrawCenterOfMass(bool drawCenterOfMass);
     /// Set allow sleeping.
+    /// @property
     void SetAllowSleeping(bool enable);
     /// Set warm starting.
+    /// @property
     void SetWarmStarting(bool enable);
     /// Set continuous physics.
+    /// @property
     void SetContinuousPhysics(bool enable);
     /// Set sub stepping.
+    /// @property
     void SetSubStepping(bool enable);
     /// Set gravity.
+    /// @property
     void SetGravity(const Vector2& gravity);
     /// Set auto clear forces.
+    /// @property
     void SetAutoClearForces(bool enable);
     /// Set velocity iterations.
+    /// @property
     void SetVelocityIterations(int velocityIterations);
     /// Set position iterations.
+    /// @property
     void SetPositionIterations(int positionIterations);
     /// Add rigid body.
     void AddRigidBody(RigidBody2D* rigidBody);
@@ -162,44 +171,58 @@ public:
     /// Return rigid body at screen point.
     RigidBody2D* GetRigidBody(int screenX, int screenY, unsigned collisionMask = M_MAX_UNSIGNED);
     /// Return rigid bodies by a box query.
-    void GetRigidBodies(PODVector<RigidBody2D*>& result, const Rect& aabb, unsigned collisionMask = M_MAX_UNSIGNED);
+    void GetRigidBodies(PODVector<RigidBody2D*>& results, const Rect& aabb, unsigned collisionMask = M_MAX_UNSIGNED);
 
     /// Return whether physics world will automatically simulate during scene update.
+    /// @property
     bool IsUpdateEnabled() const { return updateEnabled_; }
 
     /// Return draw shape.
+    /// @property
     bool GetDrawShape() const { return (m_drawFlags & e_shapeBit) != 0; }
 
     /// Return draw joint.
+    /// @property
     bool GetDrawJoint() const { return (m_drawFlags & e_jointBit) != 0; }
 
     /// Return draw aabb.
+    /// @property
     bool GetDrawAabb() const { return (m_drawFlags & e_aabbBit) != 0; }
 
     /// Return draw pair.
+    /// @property
     bool GetDrawPair() const { return (m_drawFlags & e_pairBit) != 0; }
 
     /// Return draw center of mass.
+    /// @property
     bool GetDrawCenterOfMass() const { return (m_drawFlags & e_centerOfMassBit) != 0; }
 
     /// Return allow sleeping.
+    /// @property
     bool GetAllowSleeping() const;
     /// Return warm starting.
+    /// @property
     bool GetWarmStarting() const;
     /// Return continuous physics.
+    /// @property
     bool GetContinuousPhysics() const;
     /// Return sub stepping.
+    /// @property
     bool GetSubStepping() const;
     /// Return auto clear forces.
+    /// @property
     bool GetAutoClearForces() const;
 
     /// Return gravity.
+    /// @property
     const Vector2& GetGravity() const { return gravity_; }
 
     /// Return velocity iterations.
+    /// @property
     int GetVelocityIterations() const { return velocityIterations_; }
 
     /// Return position iterations.
+    /// @property
     int GetPositionIterations() const { return positionIterations_; }
 
     /// Return the Box2D physics world.
@@ -213,7 +236,7 @@ public:
 
 protected:
     /// Handle scene being assigned.
-    virtual void OnSceneSet(Scene* scene);
+    void OnSceneSet(Scene* scene) override;
 
     /// Handle the scene subsystem update event, step simulation here.
     void HandleSceneSubsystemUpdate(StringHash eventType, VariantMap& eventData);
@@ -227,23 +250,23 @@ protected:
     /// Gravity.
     Vector2 gravity_;
     /// Velocity iterations.
-    int velocityIterations_;
+    int velocityIterations_{};
     /// Position iterations.
-    int positionIterations_;
+    int positionIterations_{};
 
     /// Extra weak pointer to scene to allow for cleanup in case the world is destroyed before other components.
     WeakPtr<Scene> scene_;
     /// Debug renderer.
-    DebugRenderer* debugRenderer_;
+    DebugRenderer* debugRenderer_{};
     /// Debug draw depth test mode.
-    bool debugDepthTest_;
+    bool debugDepthTest_{};
 
     /// Automatic simulation update enabled flag.
-    bool updateEnabled_;
+    bool updateEnabled_{true};
     /// Whether is currently stepping the world. Used internally.
-    bool physicsStepping_;
+    bool physicsStepping_{};
     /// Applying transforms.
-    bool applyingTransforms_;
+    bool applyingTransforms_{};
     /// Rigid bodies.
     Vector<WeakPtr<RigidBody2D> > rigidBodies_;
     /// Delayed (parented) world transform assignments.
@@ -255,9 +278,9 @@ protected:
         /// Construct.
         ContactInfo();
         /// Construct.
-        ContactInfo(b2Contact* contract);
-        /// Copy construct.
-        ContactInfo(const ContactInfo& other);
+        explicit ContactInfo(b2Contact* contact);
+        /// Write contact info to buffer.
+        const PODVector<unsigned char>& Serialize(VectorBuffer& buffer) const;
 
         /// Rigid body A.
         SharedPtr<RigidBody2D> bodyA_;
@@ -267,12 +290,18 @@ protected:
         SharedPtr<Node> nodeA_;
         /// Node B.
         SharedPtr<Node> nodeB_;
-        /// Box2D contact.
-        b2Contact* contact_;
         /// Shape A.
         SharedPtr<CollisionShape2D> shapeA_;
         /// Shape B.
         SharedPtr<CollisionShape2D> shapeB_;
+        /// Number of contact points.
+        int numPoints_{};
+        /// Contact normal in world space.
+        Vector2 worldNormal_;
+        /// Contact positions in world space.
+        Vector2 worldPositions_[b2_maxManifoldPoints];
+        /// Contact overlap values.
+        float separations_[b2_maxManifoldPoints]{};
     };
     /// Begin contact infos.
     Vector<ContactInfo> beginContactInfos_;

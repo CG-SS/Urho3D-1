@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+/// \file
 
 #pragma once
 
@@ -49,13 +51,14 @@ enum AsyncLoadState
 };
 
 /// Base class for resources.
+/// @templateversion
 class URHO3D_API Resource : public Object
 {
     URHO3D_OBJECT(Resource, Object);
 
 public:
     /// Construct.
-    Resource(Context* context);
+    explicit Resource(Context* context);
 
     /// Load resource synchronously. Call both BeginLoad() & EndLoad() and return true if both succeeded.
     bool Load(Deserializer& source);
@@ -67,11 +70,14 @@ public:
     virtual bool Save(Serializer& dest) const;
 
     /// Load resource from file.
+    /// @alias{Load}
     bool LoadFile(const String& fileName);
     /// Save resource to file.
+    /// @alias{Save}
     virtual bool SaveFile(const String& fileName) const;
 
     /// Set name.
+    /// @property
     void SetName(const String& name);
     /// Set memory use in bytes, possibly approximate.
     void SetMemoryUse(unsigned size);
@@ -81,15 +87,18 @@ public:
     void SetAsyncLoadState(AsyncLoadState newState);
 
     /// Return name.
+    /// @property
     const String& GetName() const { return name_; }
 
     /// Return name hash.
     StringHash GetNameHash() const { return nameHash_; }
 
     /// Return memory use in bytes, possibly approximate.
+    /// @property
     unsigned GetMemoryUse() const { return memoryUse_; }
 
     /// Return time since last use in milliseconds. If referred to elsewhere than in the resource cache, returns always zero.
+    /// @property
     unsigned GetUseTimer();
 
     /// Return the asynchronous loading state.
@@ -115,17 +124,20 @@ class URHO3D_API ResourceWithMetadata : public Resource
 
 public:
     /// Construct.
-    ResourceWithMetadata(Context* context) : Resource(context) {}
+    explicit ResourceWithMetadata(Context* context) : Resource(context) {}
 
     /// Add new metadata variable or overwrite old value.
+    /// @property{set_metadata}
     void AddMetadata(const String& name, const Variant& value);
     /// Remove metadata variable.
     void RemoveMetadata(const String& name);
     /// Remove all metadata variables.
     void RemoveAllMetadata();
     /// Return metadata variable.
+    /// @property
     const Variant& GetMetadata(const String& name) const;
     /// Return whether the resource has metadata.
+    /// @property
     bool HasMetadata() const;
 
 protected:

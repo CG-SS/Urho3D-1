@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -41,15 +41,17 @@ class URHO3D_API Geometry : public Object
 
 public:
     /// Construct with one empty vertex buffer.
-    Geometry(Context* context);
+    explicit Geometry(Context* context);
     /// Destruct.
-    virtual ~Geometry();
+    ~Geometry() override;
 
     /// Set number of vertex buffers.
+    /// @property
     bool SetNumVertexBuffers(unsigned num);
     /// Set a vertex buffer by index.
     bool SetVertexBuffer(unsigned index, VertexBuffer* buffer);
     /// Set the index buffer.
+    /// @property
     void SetIndexBuffer(IndexBuffer* buffer);
     /// Set the draw range.
     bool SetDrawRange(PrimitiveType type, unsigned indexStart, unsigned indexCount, bool getUsedVertexRange = true);
@@ -57,13 +59,14 @@ public:
     bool SetDrawRange(PrimitiveType type, unsigned indexStart, unsigned indexCount, unsigned vertexStart, unsigned vertexCount,
         bool checkIllegal = true);
     /// Set the LOD distance.
+    /// @property
     void SetLodDistance(float distance);
     /// Override raw vertex data to be returned for CPU-side operations.
-    void SetRawVertexData(SharedArrayPtr<unsigned char> data, const PODVector<VertexElement>& elements);
+    void SetRawVertexData(const SharedArrayPtr<unsigned char>& data, const PODVector<VertexElement>& elements);
     /// Override raw vertex data to be returned for CPU-side operations using a legacy vertex bitmask.
-    void SetRawVertexData(SharedArrayPtr<unsigned char> data, unsigned elementMask);
+    void SetRawVertexData(const SharedArrayPtr<unsigned char>& data, unsigned elementMask);
     /// Override raw index data to be returned for CPU-side operations.
-    void SetRawIndexData(SharedArrayPtr<unsigned char> data, unsigned indexSize);
+    void SetRawIndexData(const SharedArrayPtr<unsigned char>& data, unsigned indexSize);
     /// Draw.
     void Draw(Graphics* graphics);
 
@@ -71,30 +74,39 @@ public:
     const Vector<SharedPtr<VertexBuffer> >& GetVertexBuffers() const { return vertexBuffers_; }
 
     /// Return number of vertex buffers.
+    /// @property
     unsigned GetNumVertexBuffers() const { return vertexBuffers_.Size(); }
 
     /// Return vertex buffer by index.
+    /// @property{get_vertexBuffers}
     VertexBuffer* GetVertexBuffer(unsigned index) const;
 
     /// Return the index buffer.
+    /// @property
     IndexBuffer* GetIndexBuffer() const { return indexBuffer_; }
 
     /// Return primitive type.
+    /// @property
     PrimitiveType GetPrimitiveType() const { return primitiveType_; }
 
     /// Return start index.
+    /// @property
     unsigned GetIndexStart() const { return indexStart_; }
 
     /// Return number of indices.
+    /// @property
     unsigned GetIndexCount() const { return indexCount_; }
 
     /// Return first used vertex.
+    /// @property
     unsigned GetVertexStart() const { return vertexStart_; }
 
     /// Return number of used vertices.
+    /// @property
     unsigned GetVertexCount() const { return vertexCount_; }
 
     /// Return LOD distance.
+    /// @property
     float GetLodDistance() const { return lodDistance_; }
 
     /// Return buffers' combined hash value for state sorting.
@@ -105,11 +117,12 @@ public:
     void GetRawDataShared(SharedArrayPtr<unsigned char>& vertexData, unsigned& vertexSize, SharedArrayPtr<unsigned char>& indexData,
         unsigned& indexSize, const PODVector<VertexElement>*& elements) const;
     /// Return ray hit distance or infinity if no hit. Requires raw data to be set. Optionally return hit normal and hit uv coordinates at intersect point.
-    float GetHitDistance(const Ray& ray, Vector3* outNormal = 0, Vector2* outUV = 0) const;
+    float GetHitDistance(const Ray& ray, Vector3* outNormal = nullptr, Vector2* outUV = nullptr) const;
     /// Return whether or not the ray is inside geometry.
     bool IsInside(const Ray& ray) const;
 
     /// Return whether has empty draw range.
+    /// @property
     bool IsEmpty() const { return indexCount_ == 0 && vertexCount_ == 0; }
 
 private:

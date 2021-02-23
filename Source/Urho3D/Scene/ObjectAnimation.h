@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,16 +40,17 @@ class URHO3D_API ObjectAnimation : public Resource
 
 public:
     /// Construct.
-    ObjectAnimation(Context* context);
+    explicit ObjectAnimation(Context* context);
     /// Destruct.
-    virtual ~ObjectAnimation();
+    ~ObjectAnimation() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
-    virtual bool BeginLoad(Deserializer& source);
+    bool BeginLoad(Deserializer& source) override;
     /// Save resource. Return true if successful.
-    virtual bool Save(Serializer& dest) const;
+    bool Save(Serializer& dest) const override;
     /// Load from XML data. Return true if successful.
     bool LoadXML(const XMLElement& source);
     /// Save as XML data. Return true if successful.
@@ -68,10 +69,13 @@ public:
     void RemoveAttributeAnimation(ValueAnimation* attributeAnimation);
 
     /// Return attribute animation by name.
+    /// @property{get_attributeAnimations}
     ValueAnimation* GetAttributeAnimation(const String& name) const;
     /// Return attribute animation wrap mode by name.
+    /// @property{get_wrapModes}
     WrapMode GetAttributeAnimationWrapMode(const String& name) const;
     /// Return attribute animation speed by name.
+    /// @property{get_speeds}
     float GetAttributeAnimationSpeed(const String& name) const;
 
     /// Return all attribute animations infos.

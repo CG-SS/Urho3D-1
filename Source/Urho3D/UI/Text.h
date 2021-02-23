@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,16 @@
 // THE SOFTWARE.
 //
 
+/// \file
+
 #pragma once
 
-#include "../UI/UIElement.h"
+#include "../UI/UISelectable.h"
 
 namespace Urho3D
 {
 
-static const int DEFAULT_FONT_SIZE = 12;
+static const float DEFAULT_FONT_SIZE = 12;
 
 class Font;
 class FontFace;
@@ -45,16 +47,17 @@ enum TextEffect
 struct CharLocation
 {
     /// Position.
-    IntVector2 position_;
+    Vector2 position_;
     /// Size.
-    IntVector2 size_;
+    Vector2 size_;
 };
 
 /// Glyph and its location within the text. Used when preparing text rendering.
+/// @nobind
 struct GlyphLocation
 {
     /// Construct.
-    GlyphLocation(int x, int y, const FontGlyph* glyph) :
+    GlyphLocation(float x, float y, const FontGlyph* glyph) :
         x_(x),
         y_(y),
         glyph_(glyph)
@@ -62,135 +65,157 @@ struct GlyphLocation
     }
 
     /// X coordinate.
-    int x_;
+    float x_;
     /// Y coordinate.
-    int y_;
+    float y_;
     /// Glyph.
     const FontGlyph* glyph_;
 };
 
 /// %Text %UI element.
-class URHO3D_API Text : public UIElement
+class URHO3D_API Text : public UISelectable
 {
-    URHO3D_OBJECT(Text, UIElement);
+    URHO3D_OBJECT(Text, UISelectable);
 
     friend class Text3D;
 
 public:
     /// Construct.
-    Text(Context* context);
+    explicit Text(Context* context);
     /// Destruct.
-    virtual ~Text();
+    ~Text() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Apply attribute changes that can not be applied immediately.
-    virtual void ApplyAttributes();
+    void ApplyAttributes() override;
     /// Return UI rendering batches.
-    virtual void GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor);
+    void GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor) override;
     /// React to resize.
-    virtual void OnResize(const IntVector2& newSize, const IntVector2& delta);
+    void OnResize(const IntVector2& newSize, const IntVector2& delta) override;
     /// React to indent change.
-    virtual void OnIndentSet();
+    void OnIndentSet() override;
 
     /// Set font by looking from resource cache by name and font size. Return true if successful.
-    bool SetFont(const String& fontName, int size = DEFAULT_FONT_SIZE);
+    bool SetFont(const String& fontName, float size = DEFAULT_FONT_SIZE);
     /// Set font and font size. Return true if successful.
-    bool SetFont(Font* font, int size = DEFAULT_FONT_SIZE);
+    bool SetFont(Font* font, float size = DEFAULT_FONT_SIZE);
     /// Set font size only while retaining the existing font. Return true if successful.
-    bool SetFontSize(int size);
+    /// @property
+    bool SetFontSize(float size);
     /// Set text. Text is assumed to be either ASCII or UTF8-encoded.
+    /// @property
     void SetText(const String& text);
     /// Set row alignment.
+    /// @property
     void SetTextAlignment(HorizontalAlignment align);
     /// Set row spacing, 1.0 for original font spacing.
+    /// @property
     void SetRowSpacing(float spacing);
     /// Set wordwrap. In wordwrap mode the text element will respect its current width. Otherwise it resizes itself freely.
+    /// @property
     void SetWordwrap(bool enable);
     /// The text will be automatically translated. The text value used as string identifier.
+    /// @property
     void SetAutoLocalizable(bool enable);
     /// Set selection. When length is not provided, select until the text ends.
     void SetSelection(unsigned start, unsigned length = M_MAX_UNSIGNED);
     /// Clear selection.
     void ClearSelection();
-    /// Set selection background color. Color with 0 alpha (default) disables.
-    void SetSelectionColor(const Color& color);
-    /// Set hover background color. Color with 0 alpha (default) disables.
-    void SetHoverColor(const Color& color);
     /// Set text effect.
+    /// @property
     void SetTextEffect(TextEffect textEffect);
     /// Set shadow offset.
+    /// @property
     void SetEffectShadowOffset(const IntVector2& offset);
     /// Set stroke thickness.
+    /// @property
     void SetEffectStrokeThickness(int thickness);
     /// Set stroke rounding. Corners of the font will be rounded off in the stroke so the stroke won't have corners.
+    /// @property
     void SetEffectRoundStroke(bool roundStroke);
     /// Set effect color.
+    /// @property
     void SetEffectColor(const Color& effectColor);
 
     /// Return font.
+    /// @property
     Font* GetFont() const { return font_; }
 
     /// Return font size.
-    int GetFontSize() const { return fontSize_; }
+    /// @property
+    float GetFontSize() const { return fontSize_; }
 
     /// Return text.
+    /// @property
     const String& GetText() const { return text_; }
 
     /// Return row alignment.
+    /// @property
     HorizontalAlignment GetTextAlignment() const { return textAlignment_; }
 
     /// Return row spacing.
+    /// @property
     float GetRowSpacing() const { return rowSpacing_; }
 
     /// Return wordwrap mode.
+    /// @property
     bool GetWordwrap() const { return wordWrap_; }
 
     /// Return auto localizable mode.
+    /// @property
     bool GetAutoLocalizable() const { return autoLocalizable_; }
 
     /// Return selection start.
+    /// @property
     unsigned GetSelectionStart() const { return selectionStart_; }
 
     /// Return selection length.
+    /// @property
     unsigned GetSelectionLength() const { return selectionLength_; }
 
-    /// Return selection background color.
-    const Color& GetSelectionColor() const { return selectionColor_; }
-
-    /// Return hover background color.
-    const Color& GetHoverColor() const { return hoverColor_; }
-
     /// Return text effect.
+    /// @property
     TextEffect GetTextEffect() const { return textEffect_; }
 
     /// Return effect shadow offset.
+    /// @property
     const IntVector2& GetEffectShadowOffset() const { return shadowOffset_; }
 
     /// Return effect stroke thickness.
+    /// @property
     int GetEffectStrokeThickness() const { return strokeThickness_; }
 
     /// Return effect round stroke.
+    /// @property
     bool GetEffectRoundStroke() const { return roundStroke_; }
 
     /// Return effect color.
+    /// @property
     const Color& GetEffectColor() const { return effectColor_; }
 
     /// Return row height.
-    int GetRowHeight() const { return rowHeight_; }
+    /// @property
+    float GetRowHeight() const { return rowHeight_; }
 
     /// Return number of rows.
+    /// @property
     unsigned GetNumRows() const { return rowWidths_.Size(); }
 
     /// Return number of characters.
+    /// @property
     unsigned GetNumChars() const { return unicodeText_.Size(); }
 
     /// Return width of row by index.
-    int GetRowWidth(unsigned index) const;
+    /// @property{get_rowWidths}
+    float GetRowWidth(unsigned index) const;
     /// Return position of character by index relative to the text element origin.
-    IntVector2 GetCharPosition(unsigned index);
+    /// @property{get_charPositions}
+    Vector2 GetCharPosition(unsigned index);
     /// Return size of character by index.
-    IntVector2 GetCharSize(unsigned index);
+    /// @property{get_charSizes}
+    Vector2 GetCharSize(unsigned index);
 
     /// Set text effect Z bias. Zero by default, adjusted only in 3D mode.
     void SetEffectDepthBias(float bias);
@@ -209,7 +234,7 @@ public:
 
 protected:
     /// Filter implicit attributes in serialization process.
-    virtual bool FilterImplicitAttributes(XMLElement& dest) const;
+    bool FilterImplicitAttributes(XMLElement& dest) const override;
     /// Update text when text, font or spacing changed.
     void UpdateText(bool onResize = false);
     /// Update cached character locations after text update, or when text alignment or indent has changed.
@@ -218,9 +243,9 @@ protected:
     void ValidateSelection();
     /// Return row start X position.
     int GetRowStartPosition(unsigned rowIndex) const;
-    /// Contruct batch.
+    /// Construct batch.
     void ConstructBatch
-        (UIBatch& pageBatch, const PODVector<GlyphLocation>& pageGlyphLocation, int dx = 0, int dy = 0, Color* color = 0,
+        (UIBatch& pageBatch, const PODVector<GlyphLocation>& pageGlyphLocation, float dx = 0, float dy = 0, Color* color = nullptr,
             float depthBias = 0.0f);
 
     /// Font.
@@ -228,7 +253,7 @@ protected:
     /// Current face.
     WeakPtr<FontFace> fontFace_;
     /// Font size.
-    int fontSize_;
+    float fontSize_;
     /// UTF-8 encoded text.
     String text_;
     /// Row alignment.
@@ -243,10 +268,6 @@ protected:
     unsigned selectionStart_;
     /// Selection length.
     unsigned selectionLength_;
-    /// Selection background color.
-    Color selectionColor_;
-    /// Hover background color.
-    Color hoverColor_;
     /// Text effect.
     TextEffect textEffect_;
     /// Text effect shadow offset.
@@ -260,7 +281,7 @@ protected:
     /// Text effect Z bias.
     float effectDepthBias_;
     /// Row height.
-    int rowHeight_;
+    float rowHeight_;
     /// Text as Unicode characters.
     PODVector<unsigned> unicodeText_;
     /// Text modified into printed form.
@@ -268,7 +289,7 @@ protected:
     /// Mapping of printed form back to original char indices.
     PODVector<unsigned> printToText_;
     /// Row widths.
-    PODVector<int> rowWidths_;
+    PODVector<float> rowWidths_;
     /// Glyph locations per each texture in the font.
     Vector<PODVector<GlyphLocation> > pageGlyphLocations_;
     /// Cached locations of each character in the text.

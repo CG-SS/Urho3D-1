@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -44,21 +44,19 @@ namespace Urho3D
 
 extern const char* GEOMETRY_CATEGORY;
 
-CustomGeometry::CustomGeometry(Context* context) :
-    Drawable(context, DRAWABLE_GEOMETRY),
-    vertexBuffer_(new VertexBuffer(context)),
-    elementMask_(MASK_POSITION),
-    geometryIndex_(0),
-    materialsAttr_(Material::GetTypeStatic()),
-    dynamic_(false)
+CustomGeometry::CustomGeometry(Context* context)
+    : Drawable(context, DRAWABLE_GEOMETRY)
+    , vertexBuffer_(new VertexBuffer(context))
+    , elementMask_(MASK_POSITION)
+    , geometryIndex_(0)
+    , materialsAttr_(Material::GetTypeStatic())
+    , dynamic_(false)
 {
     vertexBuffer_->SetShadowed(true);
     SetNumGeometries(1);
 }
 
-CustomGeometry::~CustomGeometry()
-{
-}
+CustomGeometry::~CustomGeometry() = default;
 
 void CustomGeometry::RegisterObject(Context* context)
 {
@@ -67,9 +65,9 @@ void CustomGeometry::RegisterObject(Context* context)
     URHO3D_ACCESSOR_ATTRIBUTE("Is Enabled", IsEnabled, SetEnabled, bool, true, AM_DEFAULT);
     URHO3D_ATTRIBUTE("Dynamic Vertex Buffer", bool, dynamic_, false, AM_DEFAULT);
     URHO3D_MIXED_ACCESSOR_ATTRIBUTE("Geometry Data", GetGeometryDataAttr, SetGeometryDataAttr, PODVector<unsigned char>,
-        Variant::emptyBuffer, AM_FILE | AM_NOEDIT);
-    URHO3D_ACCESSOR_ATTRIBUTE("Materials", GetMaterialsAttr, SetMaterialsAttr, ResourceRefList, ResourceRefList(Material::GetTypeStatic()),
-        AM_DEFAULT);
+                                    Variant::emptyBuffer, AM_FILE | AM_NOEDIT);
+    URHO3D_ACCESSOR_ATTRIBUTE("Materials", GetMaterialsAttr, SetMaterialsAttr, ResourceRefList,
+                              ResourceRefList(Material::GetTypeStatic()), AM_DEFAULT);
     URHO3D_ATTRIBUTE("Is Occluder", bool, occluder_, false, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE("Can Be Occluded", IsOccludee, SetOccludee, bool, true, AM_DEFAULT);
     URHO3D_ATTRIBUTE("Cast Shadows", bool, castShadows_, false, AM_DEFAULT);
@@ -91,45 +89,45 @@ void CustomGeometry::ProcessRayQuery(const RayOctreeQuery& query, PODVector<RayQ
 
     case RAY_OBB:
     case RAY_TRIANGLE:
+    {
+        Matrix3x4 inverse(node_->GetWorldTransform().Inverse());
+        Ray localRay = query.ray_.Transformed(inverse);
+        float distance = localRay.HitDistance(boundingBox_);
+        Vector3 normal = -query.ray_.direction_;
+
+        if (level == RAY_TRIANGLE && distance < query.maxDistance_)
         {
-            Matrix3x4 inverse(node_->GetWorldTransform().Inverse());
-            Ray localRay = query.ray_.Transformed(inverse);
-            float distance = localRay.HitDistance(boundingBox_);
-            Vector3 normal = -query.ray_.direction_;
+            distance = M_INFINITY;
 
-            if (level == RAY_TRIANGLE && distance < query.maxDistance_)
+            for (unsigned i = 0; i < batches_.Size(); ++i)
             {
-                distance = M_INFINITY;
-
-                for (unsigned i = 0; i < batches_.Size(); ++i)
+                Geometry* geometry = batches_[i].geometry_;
+                if (geometry)
                 {
-                    Geometry* geometry = batches_[i].geometry_;
-                    if (geometry)
+                    Vector3 geometryNormal;
+                    float geometryDistance = geometry->GetHitDistance(localRay, &geometryNormal);
+                    if (geometryDistance < query.maxDistance_ && geometryDistance < distance)
                     {
-                        Vector3 geometryNormal;
-                        float geometryDistance = geometry->GetHitDistance(localRay, &geometryNormal);
-                        if (geometryDistance < query.maxDistance_ && geometryDistance < distance)
-                        {
-                            distance = geometryDistance;
-                            normal = (node_->GetWorldTransform() * Vector4(geometryNormal, 0.0f)).Normalized();
-                        }
+                        distance = geometryDistance;
+                        normal = (node_->GetWorldTransform() * Vector4(geometryNormal, 0.0f)).Normalized();
                     }
                 }
             }
-
-            if (distance < query.maxDistance_)
-            {
-                RayQueryResult result;
-                result.position_ = query.ray_.origin_ + distance * query.ray_.direction_;
-                result.normal_ = normal;
-                result.distance_ = distance;
-                result.drawable_ = this;
-                result.node_ = node_;
-                result.subObject_ = M_MAX_UNSIGNED;
-                results.Push(result);
-            }
         }
-        break;
+
+        if (distance < query.maxDistance_)
+        {
+            RayQueryResult result;
+            result.position_ = query.ray_.origin_ + distance * query.ray_.direction_;
+            result.normal_ = normal;
+            result.distance_ = distance;
+            result.drawable_ = this;
+            result.node_ = node_;
+            result.subObject_ = M_MAX_UNSIGNED;
+            results.Push(result);
+        }
+    }
+    break;
 
     case RAY_TRIANGLE_UV:
         URHO3D_LOGWARNING("RAY_TRIANGLE_UV query level is not supported for CustomGeometry component");
@@ -139,7 +137,7 @@ void CustomGeometry::ProcessRayQuery(const RayOctreeQuery& query, PODVector<RayQ
 
 Geometry* CustomGeometry::GetLodGeometry(unsigned batchIndex, unsigned level)
 {
-    return batchIndex < geometries_.Size() ? geometries_[batchIndex] : (Geometry*)0;
+    return batchIndex < geometries_.Size() ? geometries_[batchIndex] : nullptr;
 }
 
 unsigned CustomGeometry::GetNumOccluderTriangles()
@@ -197,7 +195,7 @@ bool CustomGeometry::DrawOcclusion(OcclusionBuffer* buffer)
 
         // Draw and check for running out of triangles
         success = buffer->AddTriangles(node_->GetWorldTransform(), vertexData, vertexSize, geometry->GetVertexStart(),
-            geometry->GetVertexCount());
+                                       geometry->GetVertexCount());
 
         if (!success)
             break;
@@ -300,8 +298,8 @@ void CustomGeometry::DefineTangent(const Vector4& tangent)
     elementMask_ |= MASK_TANGENT;
 }
 
-void CustomGeometry::DefineGeometry(unsigned index, PrimitiveType type, unsigned numVertices, bool hasNormals, bool hasColors,
-    bool hasTexCoords, bool hasTangents)
+void CustomGeometry::DefineGeometry(unsigned index, PrimitiveType type, unsigned numVertices, bool hasNormals,
+                                    bool hasColors, bool hasTexCoords, bool hasTangents)
 {
     if (index > geometries_.Size())
     {
@@ -351,7 +349,7 @@ void CustomGeometry::Commit()
 
     if (totalVertices)
     {
-        unsigned char* dest = (unsigned char*)vertexBuffer_->Lock(0, totalVertices, true);
+        auto* dest = (unsigned char*)vertexBuffer_->Lock(0, totalVertices, true);
         if (dest)
         {
             unsigned vertexStart = 0;
@@ -439,13 +437,14 @@ unsigned CustomGeometry::GetNumVertices(unsigned index) const
 
 Material* CustomGeometry::GetMaterial(unsigned index) const
 {
-    return index < batches_.Size() ? batches_[index].material_ : (Material*)0;
+    return index < batches_.Size() ? batches_[index].material_ : nullptr;
 }
 
 CustomGeometryVertex* CustomGeometry::GetVertex(unsigned geometryIndex, unsigned vertexNum)
 {
-    return (geometryIndex < vertices_.Size() && vertexNum < vertices_[geometryIndex].Size()) ?
-           &vertices_[geometryIndex][vertexNum] : (CustomGeometryVertex*)0;
+    return (geometryIndex < vertices_.Size() && vertexNum < vertices_[geometryIndex].Size())
+               ? &vertices_[geometryIndex][vertexNum]
+               : nullptr;
 }
 
 void CustomGeometry::SetGeometryDataAttr(const PODVector<unsigned char>& value)
@@ -456,7 +455,7 @@ void CustomGeometry::SetGeometryDataAttr(const PODVector<unsigned char>& value)
     MemoryBuffer buffer(value);
 
     SetNumGeometries(buffer.ReadVLE());
-    elementMask_ = buffer.ReadUInt();
+    elementMask_ = VertexMaskFlags(buffer.ReadUInt());
 
     for (unsigned i = 0; i < geometries_.Size(); ++i)
     {
@@ -484,7 +483,7 @@ void CustomGeometry::SetGeometryDataAttr(const PODVector<unsigned char>& value)
 
 void CustomGeometry::SetMaterialsAttr(const ResourceRefList& value)
 {
-    ResourceCache* cache = GetSubsystem<ResourceCache>();
+    auto* cache = GetSubsystem<ResourceCache>();
     for (unsigned i = 0; i < value.names_.Size(); ++i)
         SetMaterial(i, cache->GetResource<Material>(value.names_[i]));
 }
@@ -534,4 +533,4 @@ void CustomGeometry::OnWorldBoundingBoxUpdate()
     worldBoundingBox_ = boundingBox_.Transformed(node_->GetWorldTransform());
 }
 
-}
+} // namespace Urho3D

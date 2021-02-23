@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,24 +40,27 @@ class URHO3D_API SpriteSheet2D : public Resource
 
 public:
     /// Construct.
-    SpriteSheet2D(Context* context);
+    explicit SpriteSheet2D(Context* context);
     /// Destruct.
-    virtual ~SpriteSheet2D();
+    ~SpriteSheet2D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
-    virtual bool BeginLoad(Deserializer& source);
+    bool BeginLoad(Deserializer& source) override;
     /// Finish resource loading. Always called from the main thread. Return true if successful.
-    virtual bool EndLoad();
+    bool EndLoad() override;
 
     /// Set texture.
+    /// @property
     void SetTexture(Texture2D* texture);
     /// Define sprite.
     void DefineSprite(const String& name, const IntRect& rectangle, const Vector2& hotSpot = Vector2(0.5f, 0.5f),
         const IntVector2& offset = IntVector2::ZERO);
 
     /// Return texture.
+    /// @property
     Texture2D* GetTexture() const { return texture_; }
     /// Return sprite.
     Sprite2D* GetSprite(const String& name) const;

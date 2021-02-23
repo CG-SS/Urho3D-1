@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,24 +39,30 @@ class URHO3D_API MessageBox : public Object
 
 public:
     /// Construct. If layout file is not given, use the default message box layout. If style file is not given, use the default style file from root UI element.
-    MessageBox(Context* context, const String& messageString = String::EMPTY, const String& titleString = String::EMPTY,
-        XMLFile* layoutFile = 0, XMLFile* styleFile = 0);
+    explicit MessageBox(Context* context, const String& messageString = String::EMPTY, const String& titleString = String::EMPTY,
+        XMLFile* layoutFile = nullptr, XMLFile* styleFile = nullptr);
     /// Destruct.
-    virtual ~MessageBox();
+    ~MessageBox() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Set title text. No-ops if there is no title text element.
+    /// @property
     void SetTitle(const String& text);
     /// Set message text. No-ops if there is no message text element.
+    /// @property
     void SetMessage(const String& text);
 
     /// Return title text. Return empty string if there is no title text element.
+    /// @property
     const String& GetTitle() const;
     /// Return message text. Return empty string if there is no message text element.
+    /// @property
     const String& GetMessage() const;
 
     /// Return dialog window.
+    /// @property
     UIElement* GetWindow() const { return window_; }
 
 private:

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,28 +35,30 @@ class Image;
 /// 2D texture array resource.
 class URHO3D_API Texture2DArray : public Texture
 {
-    URHO3D_OBJECT(Texture2DArray, Texture)
+    URHO3D_OBJECT(Texture2DArray, Texture);
 
 public:
     /// Construct.
-    Texture2DArray(Context* context);
+    explicit Texture2DArray(Context* context);
     /// Destruct.
-    virtual ~Texture2DArray();
+    ~Texture2DArray() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
-    virtual bool BeginLoad(Deserializer& source);
+    bool BeginLoad(Deserializer& source) override;
     /// Finish resource loading. Always called from the main thread. Return true if successful.
-    virtual bool EndLoad();
+    bool EndLoad() override;
     /// Mark the GPU resource destroyed on context destruction.
-    virtual void OnDeviceLost();
+    void OnDeviceLost() override;
     /// Recreate the GPU resource and restore data if applicable.
-    virtual void OnDeviceReset();
+    void OnDeviceReset() override;
     /// Release the texture.
-    virtual void Release();
+    void Release() override;
 
     /// Set the number of layers in the texture. To be used before SetData.
+    /// @property
     void SetLayers(unsigned layers);
     /// Set layers, size, format and usage. Set layers to zero to leave them unchanged. Return true if successful.
     bool SetSize(unsigned layers, int width, int height, unsigned format, TextureUsage usage = TEXTURE_STATIC);
@@ -68,22 +70,24 @@ public:
     bool SetData(unsigned layer, Image* image, bool useAlpha = false);
 
     /// Return number of layers in the texture.
+    /// @property
     unsigned GetLayers() const { return layers_; }
     /// Get data from a mip level. The destination buffer must be big enough. Return true if successful.
     bool GetData(unsigned layer, unsigned level, void* dest) const;
     /// Return render surface.
+    /// @property
     RenderSurface* GetRenderSurface() const { return renderSurface_; }
 
 protected:
     /// Create the GPU texture.
-    virtual bool Create();
+    bool Create() override;
 
 private:
     /// Handle render surface update event.
     void HandleRenderSurfaceUpdate(StringHash eventType, VariantMap& eventData);
 
     /// Texture array layers number.
-    unsigned layers_;
+    unsigned layers_{};
     /// Render surface.
     SharedPtr<RenderSurface> renderSurface_;
     /// Memory use per layer.

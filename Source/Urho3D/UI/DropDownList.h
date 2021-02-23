@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -32,26 +32,27 @@ class ListView;
 /// %Menu %UI element that displays a popup list view.
 class URHO3D_API DropDownList : public Menu
 {
-    URHO3D_OBJECT(DropDownList, Menu)
+    URHO3D_OBJECT(DropDownList, Menu);
 
 public:
     /// Construct.
-    DropDownList(Context* context);
+    explicit DropDownList(Context* context);
     /// Destruct.
-    ~DropDownList();
+    ~DropDownList() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Apply attribute changes that can not be applied immediately.
-    virtual void ApplyAttributes();
+    void ApplyAttributes() override;
     /// Return UI rendering batches.
-    virtual void GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor);
+    void GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor) override;
     /// React to the popup being shown.
-    virtual void OnShowPopup();
+    void OnShowPopup() override;
     /// React to the popup being hidden.
-    virtual void OnHidePopup();
+    void OnHidePopup() override;
     /// React to editable status change.
-    virtual void OnSetEditable();
+    void OnSetEditable() override;
 
     /// Add item to the end of the list.
     void AddItem(UIElement* item);
@@ -64,33 +65,44 @@ public:
     /// Remove all items.
     void RemoveAllItems();
     /// Set selection.
+    /// @property
     void SetSelection(unsigned index);
     /// Set place holder text. This is the text shown when there is no selection (-1) in drop down list. Note that if the list has items, the default is to show the first item, so the "no selection" state has to be set explicitly.
+    /// @property
     void SetPlaceholderText(const String& text);
     /// Set whether popup should be automatically resized to match the dropdown button width.
+    /// @property
     void SetResizePopup(bool enable);
 
     /// Return number of items.
+    /// @property
     unsigned GetNumItems() const;
     /// Return item at index.
+    /// @property{get_items}
     UIElement* GetItem(unsigned index) const;
     /// Return all items.
     PODVector<UIElement*> GetItems() const;
     /// Return selection index, or M_MAX_UNSIGNED if none selected.
+    /// @property
     unsigned GetSelection() const;
     /// Return selected item, or null if none selected.
+    /// @property
     UIElement* GetSelectedItem() const;
 
     /// Return listview element.
+    /// @property
     ListView* GetListView() const { return listView_; }
 
     /// Return selected item placeholder element.
+    /// @property
     UIElement* GetPlaceholder() const { return placeholder_; }
 
     /// Return place holder text.
+    /// @property
     const String& GetPlaceholderText() const;
 
     /// Return whether popup should be automatically resized.
+    /// @property
     bool GetResizePopup() const { return resizePopup_; }
 
     /// Set selection attribute.
@@ -98,9 +110,9 @@ public:
 
 protected:
     /// Filter implicit attributes in serialization process.
-    virtual bool FilterImplicitAttributes(XMLElement& dest) const;
+    bool FilterImplicitAttributes(XMLElement& dest) const override;
     /// Filter implicit attributes in serialization process.
-    virtual bool FilterPopupImplicitAttributes(XMLElement& dest) const;
+    bool FilterPopupImplicitAttributes(XMLElement& dest) const override;
 
     /// Listview element.
     SharedPtr<ListView> listView_;

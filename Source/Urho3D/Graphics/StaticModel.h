@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -45,44 +45,56 @@ class URHO3D_API StaticModel : public Drawable
 
 public:
     /// Construct.
-    StaticModel(Context* context);
+    explicit StaticModel(Context* context);
     /// Destruct.
-    ~StaticModel();
+    ~StaticModel() override;
     /// Register object factory. Drawable must be registered first.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Process octree raycast. May be called from a worker thread.
-    virtual void ProcessRayQuery(const RayOctreeQuery& query, PODVector<RayQueryResult>& results);
+    void ProcessRayQuery(const RayOctreeQuery& query, PODVector<RayQueryResult>& results) override;
     /// Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.
-    virtual void UpdateBatches(const FrameInfo& frame);
+    void UpdateBatches(const FrameInfo& frame) override;
     /// Return the geometry for a specific LOD level.
-    virtual Geometry* GetLodGeometry(unsigned batchIndex, unsigned level);
+    Geometry* GetLodGeometry(unsigned batchIndex, unsigned level) override;
     /// Return number of occlusion geometry triangles.
-    virtual unsigned GetNumOccluderTriangles();
+    unsigned GetNumOccluderTriangles() override;
     /// Draw to occlusion buffer. Return true if did not run out of triangles.
-    virtual bool DrawOcclusion(OcclusionBuffer* buffer);
+    bool DrawOcclusion(OcclusionBuffer* buffer) override;
 
     /// Set model.
+    /// @manualbind
     virtual void SetModel(Model* model);
     /// Set material on all geometries.
+    /// @property
     virtual void SetMaterial(Material* material);
     /// Set material on one geometry. Return true if successful.
+    /// @property{set_materials}
     virtual bool SetMaterial(unsigned index, Material* material);
     /// Set occlusion LOD level. By default (M_MAX_UNSIGNED) same as visible.
+    /// @property
     void SetOcclusionLodLevel(unsigned level);
     /// Apply default materials from a material list file. If filename is empty (default), the model's resource name with extension .txt will be used.
     void ApplyMaterialList(const String& fileName = String::EMPTY);
 
     /// Return model.
+    /// @property
     Model* GetModel() const { return model_; }
 
     /// Return number of geometries.
+    /// @property
     unsigned GetNumGeometries() const { return geometries_.Size(); }
 
+    /// Return material from the first geometry, assuming all the geometries use the same material.
+    /// @property
+    virtual Material* GetMaterial() const { return GetMaterial(0); }
     /// Return material by geometry index.
-    virtual Material* GetMaterial(unsigned index = 0) const;
+    /// @property{get_materials}
+    virtual Material* GetMaterial(unsigned index) const;
 
     /// Return occlusion LOD level.
+    /// @property
     unsigned GetOcclusionLodLevel() const { return occlusionLodLevel_; }
 
     /// Determines if the given world space point is within the model geometry.
@@ -101,7 +113,7 @@ public:
 
 protected:
     /// Recalculate the world-space bounding box.
-    virtual void OnWorldBoundingBoxUpdate();
+    void OnWorldBoundingBoxUpdate() override;
     /// Set local-space bounding box.
     void SetBoundingBox(const BoundingBox& box);
     /// Set number of geometries.

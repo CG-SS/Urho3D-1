@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ class URHO3D_API Quaternion
 {
 public:
     /// Construct an identity quaternion.
-    Quaternion()
+    Quaternion() noexcept
 #ifndef URHO3D_SSE
        :w_(1.0f),
         x_(0.0f),
@@ -50,7 +50,7 @@ public:
     }
 
     /// Copy-construct from another quaternion.
-    Quaternion(const Quaternion& quat)
+    Quaternion(const Quaternion& quat) noexcept
 #if defined(URHO3D_SSE) && (!defined(_MSC_VER) || _MSC_VER >= 1700) /* Visual Studio 2012 and newer. VS2010 has a bug with these, see https://github.com/urho3d/Urho3D/issues/1044 */
     {
         _mm_storeu_ps(&w_, _mm_loadu_ps(&quat.w_));
@@ -65,7 +65,7 @@ public:
 #endif
 
     /// Construct from values.
-    Quaternion(float w, float x, float y, float z)
+    Quaternion(float w, float x, float y, float z) noexcept
 #ifndef URHO3D_SSE
        :w_(w),
         x_(x),
@@ -79,7 +79,7 @@ public:
     }
 
     /// Construct from a float array.
-    explicit Quaternion(const float* data)
+    explicit Quaternion(const float* data) noexcept
 #ifndef URHO3D_SSE
        :w_(data[0]),
         x_(data[1]),
@@ -93,50 +93,56 @@ public:
     }
 
     /// Construct from an angle (in degrees) and axis.
-    Quaternion(float angle, const Vector3& axis)
+    Quaternion(float angle, const Vector3& axis) noexcept
     {
         FromAngleAxis(angle, axis);
     }
 
     /// Construct from an angle (in degrees, for Urho2D).
-    explicit Quaternion(float angle)
+    explicit Quaternion(float angle) noexcept
     {
         FromAngleAxis(angle, Vector3::FORWARD);
     }
 
-    /// Construct from Euler angles (in degrees.)
-    Quaternion(float x, float y, float z)
+    /// Construct from Euler angles (in degrees). Equivalent to Y*X*Z.
+    Quaternion(float x, float y, float z) noexcept
     {
         FromEulerAngles(x, y, z);
     }
 
+    /// Construct from Euler angles (in degrees).
+    explicit Quaternion(const Vector3& angles) noexcept
+    {
+        FromEulerAngles(angles.x_, angles.y_, angles.z_);
+    }
+
     /// Construct from the rotation difference between two direction vectors.
-    Quaternion(const Vector3& start, const Vector3& end)
+    Quaternion(const Vector3& start, const Vector3& end) noexcept
     {
         FromRotationTo(start, end);
     }
 
     /// Construct from orthonormal axes.
-    Quaternion(const Vector3& xAxis, const Vector3& yAxis, const Vector3& zAxis)
+    Quaternion(const Vector3& xAxis, const Vector3& yAxis, const Vector3& zAxis) noexcept
     {
         FromAxes(xAxis, yAxis, zAxis);
     }
 
     /// Construct from a rotation matrix.
-    explicit Quaternion(const Matrix3& matrix)
+    explicit Quaternion(const Matrix3& matrix) noexcept
     {
         FromRotationMatrix(matrix);
     }
 
 #ifdef URHO3D_SSE
-    explicit Quaternion(__m128 wxyz)
+    explicit Quaternion(__m128 wxyz) noexcept
     {
         _mm_storeu_ps(&w_, wxyz);
     }
 #endif
 
     /// Assign from another quaternion.
-    Quaternion& operator =(const Quaternion& rhs)
+    Quaternion& operator =(const Quaternion& rhs) noexcept
     {
 #if defined(URHO3D_SSE) && (!defined(_MSC_VER) || _MSC_VER >= 1700) /* Visual Studio 2012 and newer. VS2010 has a bug with these, see https://github.com/urho3d/Urho3D/issues/1044 */
         _mm_storeu_ps(&w_, _mm_loadu_ps(&rhs.w_));
@@ -292,7 +298,7 @@ public:
 
     /// Define from an angle (in degrees) and axis.
     void FromAngleAxis(float angle, const Vector3& axis);
-    /// Define from Euler angles (in degrees.)
+    /// Define from Euler angles (in degrees). Equivalent to Y*X*Z.
     void FromEulerAngles(float x, float y, float z);
     /// Define from the rotation difference between two direction vectors.
     void FromRotationTo(const Vector3& start, const Vector3& end);
@@ -409,8 +415,11 @@ public:
         return Urho3D::Equals(w_, rhs.w_) && Urho3D::Equals(x_, rhs.x_) && Urho3D::Equals(y_, rhs.y_) && Urho3D::Equals(z_, rhs.z_);
     }
 
-    /// Return whether is NaN.
+    /// Return whether any element is NaN.
     bool IsNaN() const { return Urho3D::IsNaN(w_) || Urho3D::IsNaN(x_) || Urho3D::IsNaN(y_) || Urho3D::IsNaN(z_); }
+
+    /// Return whether any element is Inf.
+    bool IsInf() const { return Urho3D::IsInf(w_) || Urho3D::IsInf(x_) || Urho3D::IsInf(y_) || Urho3D::IsInf(z_); }
 
     /// Return conjugate.
     Quaternion Conjugate() const
@@ -424,18 +433,25 @@ public:
     }
 
     /// Return Euler angles in degrees.
+    /// @property
     Vector3 EulerAngles() const;
     /// Return yaw angle in degrees.
+    /// @property{get_yaw}
     float YawAngle() const;
     /// Return pitch angle in degrees.
+    /// @property{get_pitch}
     float PitchAngle() const;
     /// Return roll angle in degrees.
+    /// @property{get_roll}
     float RollAngle() const;
     /// Return rotation axis.
+    /// @property
     Vector3 Axis() const;
     /// Return rotation angle.
+    /// @property
     float Angle() const;
     /// Return the rotation matrix that corresponds to this quaternion.
+    /// @property
     Matrix3 RotationMatrix() const;
     /// Spherical interpolation with another quaternion.
     Quaternion Slerp(const Quaternion& rhs, float t) const;

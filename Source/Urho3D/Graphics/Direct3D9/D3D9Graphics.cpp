@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -119,6 +119,7 @@ static const D3DTEXTUREADDRESS d3dAddressMode[] =
 static const DWORD d3dBlendEnable[] =
 {
     FALSE,
+    TRUE,
     TRUE,
     TRUE,
     TRUE,
@@ -253,37 +254,7 @@ bool Graphics::gl3Support = false;
 Graphics::Graphics(Context* context) :
     Object(context),
     impl_(new GraphicsImpl()),
-    window_(0),
-    externalWindow_(0),
-    width_(0),
-    height_(0),
     position_(SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED),
-    multiSample_(1),
-    fullscreen_(false),
-    borderless_(false),
-    resizable_(false),
-    highDPI_(false),
-    vsync_(false),
-    monitor_(0),
-    refreshRate_(0),
-    tripleBuffer_(false),
-    flushGPU_(false),
-    sRGB_(false),
-    anisotropySupport_(false),
-    dxtTextureSupport_(false),
-    etcTextureSupport_(false),
-    pvrtcTextureSupport_(false),
-    hardwareShadowSupport_(false),
-    lightPrepassSupport_(false),
-    deferredSupport_(false),
-    instancingSupport_(false),
-    sRGBSupport_(false),
-    sRGBWriteSupport_(false),
-    numPrimitives_(0),
-    numBatches_(0),
-    maxScratchBufferRequest_(0),
-    defaultTextureFilterMode_(FILTER_TRILINEAR),
-    defaultTextureAnisotropy_(4),
     shaderPath_("Shaders/HLSL/"),
     shaderExtension_(".hlsl"),
     orientations_("LandscapeLeft LandscapeRight"),
@@ -320,70 +291,39 @@ Graphics::~Graphics()
     {
         SDL_ShowCursor(SDL_TRUE);
         SDL_DestroyWindow(window_);
-        window_ = 0;
+        window_ = nullptr;
     }
 
     delete impl_;
-    impl_ = 0;
+    impl_ = nullptr;
 
     context_->ReleaseSDL();
 }
 
-bool Graphics::SetMode(int width, int height, bool fullscreen, bool borderless, bool resizable, bool highDPI, bool vsync,
-    bool tripleBuffer, int multiSample, int monitor, int refreshRate)
+bool Graphics::SetScreenMode(int width, int height, const ScreenModeParams& params, bool maximize)
 {
     URHO3D_PROFILE(SetScreenMode);
 
-    highDPI = false;   // SDL does not support High DPI mode on Windows platform yet, so always disable it for now
+    // Ensure that parameters are properly filled
+    ScreenModeParams newParams = params;
+    AdjustScreenMode(width, height, newParams, maximize);
 
-    bool maximize = false;
-
-    // Make sure monitor index is not bigger than the currently detected monitors
-    int monitors = SDL_GetNumVideoDisplays();
-    if (monitor >= monitors || monitor < 0)
-        monitor = 0; // this monitor is not present, use first monitor
+    // If nothing changes, do not reset the device
+    if (width_ == width && height_ == height && screenParams_ == newParams)
+        return true;
 
     // Find out the full screen mode display format (match desktop color depth)
     SDL_DisplayMode mode;
-    SDL_GetDesktopDisplayMode(monitor, &mode);
-    D3DFORMAT fullscreenFormat = SDL_BITSPERPIXEL(mode.format) == 16 ? D3DFMT_R5G6B5 : D3DFMT_X8R8G8B8;
+    SDL_GetDesktopDisplayMode(newParams.monitor_, &mode);
+    const D3DFORMAT fullscreenFormat = SDL_BITSPERPIXEL(mode.format) == 16 ? D3DFMT_R5G6B5 : D3DFMT_X8R8G8B8;
 
-    // If zero dimensions in windowed mode, set windowed mode to maximize and set a predefined default restored window size. If zero in fullscreen, use desktop mode
-    if (!width || !height)
-    {
-        if (fullscreen || borderless)
-        {
-            width = mode.w;
-            height = mode.h;
-        }
-        else
-        {
-            maximize = resizable;
-            width = 1024;
-            height = 768;
-        }
-    }
-
-    // Fullscreen or Borderless can not be resizable
-    if (fullscreen || borderless)
-        resizable = false;
-
-    // Borderless cannot be fullscreen, they are mutually exclusive
-    if (borderless)
-        fullscreen = false;
-
-    multiSample = Clamp(multiSample, 1, (int)D3DMULTISAMPLE_16_SAMPLES);
-
-    // If nothing changes, do not reset the device
-    if (width == width_ && height == height_ && fullscreen == fullscreen_ && borderless == borderless_ && resizable == resizable_ &&
-        vsync == vsync_ && tripleBuffer == tripleBuffer_ && multiSample == multiSample_)
-        return true;
+    const bool monitorChanged = screenParams_.monitor_ != newParams.monitor_;
 
     SDL_SetHint(SDL_HINT_ORIENTATIONS, orientations_.CString());
 
     if (!window_)
     {
-        if (!OpenWindow(width, height, resizable, borderless))
+        if (!OpenWindow(width, height, newParams.resizable_, newParams.borderless_))
             return false;
     }
 
@@ -395,42 +335,14 @@ bool Graphics::SetMode(int width, int height, bool fullscreen, bool borderless, 
         CheckFeatureSupport();
     }
 
-    // Note: GetMultiSample() will not reflect the actual hardware multisample mode, but rather what the caller wanted.
-    multiSample_ = multiSample;
-
-    // Check fullscreen mode validity. Use a closest match if not found
-    if (fullscreen)
-    {
-        PODVector<IntVector3> resolutions = GetResolutions(monitor);
-        if (resolutions.Size())
-        {
-            unsigned best = 0;
-            unsigned bestError = M_MAX_UNSIGNED;
-
-            for (unsigned i = 0; i < resolutions.Size(); ++i)
-            {
-                unsigned error = (unsigned)(Abs(resolutions[i].x_ - width) + Abs(resolutions[i].y_ - height));
-                if (error < bestError)
-                {
-                    best = i;
-                    bestError = error;
-                }
-            }
-
-            width = resolutions[best].x_;
-            height = resolutions[best].y_;
-            refreshRate = resolutions[best].z_;
-        }
-    }
-
     // Fall back to non-multisampled if unsupported multisampling mode
-    if (multiSample > 1)
+    if (newParams.multiSample_ > 1)
     {
-        if (!impl_->CheckMultiSampleSupport(fullscreenFormat, multiSample))
-            multiSample = 1;
+        if (!impl_->CheckMultiSampleSupport(fullscreenFormat, newParams.multiSample_))
+            newParams.multiSample_ = 1;
     }
 
-    AdjustWindow(width, height, fullscreen, borderless, monitor);
+    AdjustWindow(width, height, newParams.fullscreen_, newParams.borderless_, newParams.monitor_);
 
     if (maximize)
     {
@@ -438,7 +350,7 @@ bool Graphics::SetMode(int width, int height, bool fullscreen, bool borderless, 
         SDL_GetWindowSize(window_, &width, &height);
     }
 
-    if (fullscreen)
+    if (newParams.fullscreen_)
     {
         impl_->presentParams_.BackBufferFormat = fullscreenFormat;
         impl_->presentParams_.Windowed = false;
@@ -451,35 +363,28 @@ bool Graphics::SetMode(int width, int height, bool fullscreen, bool borderless, 
 
     impl_->presentParams_.BackBufferWidth = (UINT)width;
     impl_->presentParams_.BackBufferHeight = (UINT)height;
-    impl_->presentParams_.BackBufferCount = tripleBuffer ? 2 : 1;
-    impl_->presentParams_.MultiSampleType = multiSample > 1 ? (D3DMULTISAMPLE_TYPE)multiSample : D3DMULTISAMPLE_NONE;
+    impl_->presentParams_.BackBufferCount = newParams.tripleBuffer_ ? 2 : 1;
+    impl_->presentParams_.MultiSampleType = newParams.multiSample_ > 1 ? static_cast<D3DMULTISAMPLE_TYPE>(newParams.multiSample_) : D3DMULTISAMPLE_NONE;
     impl_->presentParams_.MultiSampleQuality = 0;
     impl_->presentParams_.SwapEffect = D3DSWAPEFFECT_DISCARD;
     impl_->presentParams_.hDeviceWindow = GetWindowHandle(window_);
     impl_->presentParams_.EnableAutoDepthStencil = TRUE;
     impl_->presentParams_.AutoDepthStencilFormat = D3DFMT_D24S8;
     impl_->presentParams_.Flags = D3DPRESENT_LINEAR_CONTENT;
-    impl_->presentParams_.FullScreen_RefreshRateInHz = fullscreen ? refreshRate : D3DPRESENT_RATE_DEFAULT;
+    impl_->presentParams_.FullScreen_RefreshRateInHz = newParams.fullscreen_ ? newParams.refreshRate_ : D3DPRESENT_RATE_DEFAULT;
 
-    if (vsync)
+    if (newParams.vsync_)
         impl_->presentParams_.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
     else
         impl_->presentParams_.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
     width_ = width;
     height_ = height;
-    fullscreen_ = fullscreen;
-    borderless_ = borderless;
-    resizable_ = resizable;
-    highDPI_ = highDPI;
-    vsync_ = vsync;
-    tripleBuffer_ = tripleBuffer;
-    monitor_ = monitor;
-    refreshRate_ = refreshRate;
+    screenParams_ = newParams;
 
     if (!impl_->device_)
     {
-        unsigned adapter = monitor;
+        unsigned adapter = SDL_Direct3D9GetAdapterIndex(screenParams_.monitor_);
         unsigned deviceType = D3DDEVTYPE_HAL;
 
         // Check for PerfHUD adapter
@@ -487,7 +392,7 @@ bool Graphics::SetMode(int width, int height, bool fullscreen, bool borderless, 
         {
             D3DADAPTER_IDENTIFIER9 identifier;
             impl_->interface_->GetAdapterIdentifier(i, 0, &identifier);
-            if (strstr(identifier.Description, "PerfHUD") != 0)
+            if (strstr(identifier.Description, "PerfHUD") != nullptr)
             {
                 adapter = i;
                 deviceType = D3DDEVTYPE_REF;
@@ -500,45 +405,49 @@ bool Graphics::SetMode(int width, int height, bool fullscreen, bool borderless, 
             return false;
     }
     else
-        ResetDevice();
+    {
+        if (!monitorChanged)
+            ResetDevice();
+        else
+        {
+            URHO3D_LOGINFO("Destroying D3D9 device");
+            // Monitor changed, re-create the D3D9 device on the new monitor
+            impl_->vertexDeclarations_.Clear();
+            OnDeviceLost();
+            {
+                MutexLock lock(gpuObjectMutex_);
+                // Release all GPU objects that still exist
+                for (PODVector<GPUObject*>::Iterator i = gpuObjects_.Begin(); i != gpuObjects_.End(); ++i)
+                    (*i)->Release();
+            }
+
+            // destroy previous device
+            URHO3D_SAFE_RELEASE(impl_->device_);
+
+            // create new device on the specified monitor
+            unsigned adapter = SDL_Direct3D9GetAdapterIndex(screenParams_.monitor_);
+            unsigned deviceType = D3DDEVTYPE_HAL;
+            if (!CreateDevice(adapter, deviceType))
+                return false;
+            ResetDevice();
+        }
+    }
 
     // Clear the initial window contents to black
     impl_->device_->BeginScene();
     Clear(CLEAR_COLOR);
     impl_->device_->EndScene();
-    impl_->device_->Present(0, 0, 0, 0);
+    impl_->device_->Present(nullptr, nullptr, nullptr, nullptr);
 
 #ifdef URHO3D_LOGGING
-    String msg;
-    msg.AppendWithFormat("Set screen mode %dx%d %s monitor %d", width_, height_, (fullscreen_ ? "fullscreen" : "windowed"), monitor_);
-    if (borderless_)
-        msg.Append(" borderless");
-    if (resizable_)
-        msg.Append(" resizable");
-    if (multiSample > 1)
-        msg.AppendWithFormat(" multisample %d", multiSample);
-    URHO3D_LOGINFO(msg);
+    D3DADAPTER_IDENTIFIER9 id = {0};
+    HRESULT hr = impl_->interface_->GetAdapterIdentifier(SDL_Direct3D9GetAdapterIndex(screenParams_.monitor_), 0, &id);
+    if (S_OK == hr)
+        URHO3D_LOGINFOF("Adapter used %s", id.Description);
 #endif
 
-    using namespace ScreenMode;
-
-    VariantMap& eventData = GetEventDataMap();
-    eventData[P_WIDTH] = width_;
-    eventData[P_HEIGHT] = height_;
-    eventData[P_FULLSCREEN] = fullscreen_;
-    eventData[P_BORDERLESS] = borderless_;
-    eventData[P_RESIZABLE] = resizable_;
-    eventData[P_HIGHDPI] = highDPI_;
-    eventData[P_MONITOR] = monitor_;
-    eventData[P_REFRESHRATE] = refreshRate_;
-    SendEvent(E_SCREENMODE, eventData);
-
+    OnScreenModeChanged();
     return true;
-}
-
-bool Graphics::SetMode(int width, int height)
-{
-    return SetMode(width, height, fullscreen_, borderless_, resizable_, highDPI_, vsync_, tripleBuffer_, multiSample_, monitor_, refreshRate_);
 }
 
 void Graphics::SetSRGB(bool enable)
@@ -567,7 +476,7 @@ void Graphics::Close()
     {
         SDL_ShowCursor(SDL_TRUE);
         SDL_DestroyWindow(window_);
-        window_ = 0;
+        window_ = nullptr;
     }
 }
 
@@ -596,9 +505,9 @@ bool Graphics::TakeScreenShot(Image& destImage)
     if (impl_->presentParams_.MultiSampleType)
     {
         // If windowed and multisampled, must still capture the whole screen
-        if (!fullscreen_)
+        if (!screenParams_.fullscreen_)
         {
-            IntVector2 desktopSize = GetDesktopResolution(monitor_);
+            IntVector2 desktopSize = GetDesktopResolution(screenParams_.monitor_);
             surfaceWidth = (unsigned)desktopSize.x_;
             surfaceHeight = (unsigned)desktopSize.y_;
         }
@@ -606,8 +515,8 @@ bool Graphics::TakeScreenShot(Image& destImage)
         surfaceDesc.Format = D3DFMT_A8R8G8B8;
     }
 
-    IDirect3DSurface9* surface = 0;
-    HRESULT hr = impl_->device_->CreateOffscreenPlainSurface(surfaceWidth, surfaceHeight, surfaceDesc.Format, D3DPOOL_SYSTEMMEM, &surface, 0);
+    IDirect3DSurface9* surface = nullptr;
+    HRESULT hr = impl_->device_->CreateOffscreenPlainSurface(surfaceWidth, surfaceHeight, surfaceDesc.Format, D3DPOOL_SYSTEMMEM, &surface, nullptr);
     if (FAILED(hr))
     {
         URHO3D_SAFE_RELEASE(surface);
@@ -643,7 +552,7 @@ bool Graphics::TakeScreenShot(Image& destImage)
     }
 
     D3DLOCKED_RECT lockedRect;
-    lockedRect.pBits = 0;
+    lockedRect.pBits = nullptr;
     hr = surface->LockRect(&lockedRect, &sourceRect, D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
     if (FAILED(hr) || !lockedRect.pBits)
     {
@@ -718,7 +627,7 @@ bool Graphics::BeginFrame()
     {
         // To prevent a loop of endless device loss and flicker, do not attempt to render when in fullscreen
         // and the window is minimized
-        if (fullscreen_ && (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED))
+        if (screenParams_.fullscreen_ && (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED))
             return false;
     }
 
@@ -751,7 +660,7 @@ bool Graphics::BeginFrame()
 
     // Cleanup textures from previous frame
     for (unsigned i = 0; i < MAX_TEXTURE_UNITS; ++i)
-        SetTexture(i, 0);
+        SetTexture(i, nullptr);
 
     numPrimitives_ = 0;
     numBatches_ = 0;
@@ -772,7 +681,7 @@ void Graphics::EndFrame()
         SendEvent(E_ENDRENDERING);
 
         impl_->device_->EndScene();
-        impl_->device_->Present(0, 0, 0, 0);
+        impl_->device_->Present(nullptr, nullptr, nullptr, nullptr);
     }
 
     // Optionally flush GPU buffer to avoid control lag or framerate fluctuations due to multiple frame buffering
@@ -783,7 +692,7 @@ void Graphics::EndFrame()
         {
             URHO3D_PROFILE(FlushGPU);
 
-            while (impl_->frameQuery_->GetData(0, 0, D3DGETDATA_FLUSH) == S_FALSE)
+            while (impl_->frameQuery_->GetData(nullptr, 0, D3DGETDATA_FLUSH) == S_FALSE)
             {
             }
 
@@ -801,7 +710,7 @@ void Graphics::EndFrame()
     CleanupScratchBuffers();
 }
 
-void Graphics::Clear(unsigned flags, const Color& color, float depth, unsigned stencil)
+void Graphics::Clear(ClearTargetFlags flags, const Color& color, float depth, unsigned stencil)
 {
     DWORD d3dFlags = 0;
     if (flags & CLEAR_COLOR)
@@ -811,7 +720,7 @@ void Graphics::Clear(unsigned flags, const Color& color, float depth, unsigned s
     if (flags & CLEAR_STENCIL)
         d3dFlags |= D3DCLEAR_STENCIL;
 
-    impl_->device_->Clear(0, 0, d3dFlags, GetD3DColor(color), depth, stencil);
+    impl_->device_->Clear(0, nullptr, d3dFlags, GetD3DColor(color), depth, stencil);
 }
 
 bool Graphics::ResolveToTexture(Texture2D* destination, const IntRect& viewport)
@@ -870,7 +779,7 @@ bool Graphics::ResolveToTexture(Texture2D* texture)
 
     IDirect3DSurface9* srcSurface = (IDirect3DSurface9*)surface->GetSurface();
     IDirect3DTexture9* destTexture = (IDirect3DTexture9*)texture->GetGPUObject();
-    IDirect3DSurface9* destSurface = 0;
+    IDirect3DSurface9* destSurface = nullptr;
     HRESULT hr = destTexture->GetSurfaceLevel(0, &destSurface);
     if (FAILED(hr))
     {
@@ -915,7 +824,7 @@ bool Graphics::ResolveToTexture(TextureCube* texture)
         surface->SetResolveDirty(false);
         IDirect3DSurface9* srcSurface = (IDirect3DSurface9*)surface->GetSurface();
         IDirect3DCubeTexture9* destTexture = (IDirect3DCubeTexture9*)texture->GetGPUObject();
-        IDirect3DSurface9* destSurface = 0;
+        IDirect3DSurface9* destSurface = nullptr;
         HRESULT hr = destTexture->GetCubeMapSurface((D3DCUBEMAP_FACES)i, 0, &destSurface);
         if (FAILED(hr))
         {
@@ -1096,7 +1005,7 @@ bool Graphics::SetVertexBuffers(const PODVector<VertexBuffer*>& buffers, unsigne
 
     for (unsigned i = 0; i < MAX_VERTEX_STREAMS; ++i)
     {
-        VertexBuffer* buffer = 0;
+        VertexBuffer* buffer = nullptr;
         unsigned offset = 0;
 
         if (i < buffers.Size() && buffers[i])
@@ -1114,7 +1023,7 @@ bool Graphics::SetVertexBuffers(const PODVector<VertexBuffer*>& buffers, unsigne
                 impl_->device_->SetStreamSource(i, (IDirect3DVertexBuffer9*)buffer->GetGPUObject(), offset,
                     buffer->GetVertexSize());
             else
-                impl_->device_->SetStreamSource(i, 0, 0, 0);
+                impl_->device_->SetStreamSource(i, nullptr, 0, 0);
 
             vertexBuffers_[i] = buffer;
             impl_->streamOffsets_[i] = offset;
@@ -1136,7 +1045,7 @@ void Graphics::SetIndexBuffer(IndexBuffer* buffer)
         if (buffer)
             impl_->device_->SetIndices((IDirect3DIndexBuffer9*)buffer->GetGPUObject());
         else
-            impl_->device_->SetIndices(0);
+            impl_->device_->SetIndices(nullptr);
 
         indexBuffer_ = buffer;
     }
@@ -1162,19 +1071,19 @@ void Graphics::SetShaders(ShaderVariation* vs, ShaderVariation* ps)
                 if (!success)
                 {
                     URHO3D_LOGERROR("Failed to compile vertex shader " + vs->GetFullName() + ":\n" + vs->GetCompilerOutput());
-                    vs = 0;
+                    vs = nullptr;
                 }
             }
             else
-                vs = 0;
+                vs = nullptr;
         }
 
         if (vs && vs->GetShaderType() == VS)
             impl_->device_->SetVertexShader((IDirect3DVertexShader9*)vs->GetGPUObject());
         else
         {
-            impl_->device_->SetVertexShader(0);
-            vs = 0;
+            impl_->device_->SetVertexShader(nullptr);
+            vs = nullptr;
         }
 
         vertexShader_ = vs;
@@ -1192,19 +1101,19 @@ void Graphics::SetShaders(ShaderVariation* vs, ShaderVariation* ps)
                 if (!success)
                 {
                     URHO3D_LOGERROR("Failed to compile pixel shader " + ps->GetFullName() + ":\n" + ps->GetCompilerOutput());
-                    ps = 0;
+                    ps = nullptr;
                 }
             }
             else
-                ps = 0;
+                ps = nullptr;
         }
 
         if (ps && ps->GetShaderType() == PS)
             impl_->device_->SetPixelShader((IDirect3DPixelShader9*)ps->GetGPUObject());
         else
         {
-            impl_->device_->SetPixelShader(0);
-            ps = 0;
+            impl_->device_->SetPixelShader(nullptr);
+            ps = nullptr;
         }
 
         pixelShader_ = ps;
@@ -1224,7 +1133,7 @@ void Graphics::SetShaders(ShaderVariation* vs, ShaderVariation* ps)
         }
     }
     else
-        impl_->shaderProgram_ = 0;
+        impl_->shaderProgram_ = nullptr;
 
     // Store shader combination if shader dumping in progress
     if (shaderPrecache_)
@@ -1456,7 +1365,7 @@ void Graphics::SetTexture(unsigned index, Texture* texture)
         if (texture)
             impl_->device_->SetTexture(index, (IDirect3DBaseTexture9*)texture->GetGPUObject());
         else
-            impl_->device_->SetTexture(index, 0);
+            impl_->device_->SetTexture(index, nullptr);
 
         textures_[index] = texture;
     }
@@ -1550,19 +1459,19 @@ void Graphics::SetDefaultTextureAnisotropy(unsigned level)
 void Graphics::ResetRenderTargets()
 {
     for (unsigned i = 0; i < MAX_RENDERTARGETS; ++i)
-        SetRenderTarget(i, (RenderSurface*)0);
-    SetDepthStencil((RenderSurface*)0);
+        SetRenderTarget(i, (RenderSurface*)nullptr);
+    SetDepthStencil((RenderSurface*)nullptr);
     SetViewport(IntRect(0, 0, width_, height_));
 }
 
 void Graphics::ResetRenderTarget(unsigned index)
 {
-    SetRenderTarget(index, (RenderSurface*)0);
+    SetRenderTarget(index, (RenderSurface*)nullptr);
 }
 
 void Graphics::ResetDepthStencil()
 {
-    SetDepthStencil((RenderSurface*)0);
+    SetDepthStencil((RenderSurface*)nullptr);
 }
 
 void Graphics::SetRenderTarget(unsigned index, RenderSurface* renderTarget)
@@ -1570,7 +1479,7 @@ void Graphics::SetRenderTarget(unsigned index, RenderSurface* renderTarget)
     if (index >= MAX_RENDERTARGETS)
         return;
 
-    IDirect3DSurface9* newColorSurface = 0;
+    IDirect3DSurface9* newColorSurface = nullptr;
 
     if (renderTarget)
     {
@@ -1631,7 +1540,7 @@ void Graphics::SetRenderTarget(unsigned index, RenderSurface* renderTarget)
 
 void Graphics::SetRenderTarget(unsigned index, Texture2D* texture)
 {
-    RenderSurface* renderTarget = 0;
+    RenderSurface* renderTarget = nullptr;
     if (texture)
         renderTarget = texture->GetRenderSurface();
 
@@ -1640,7 +1549,7 @@ void Graphics::SetRenderTarget(unsigned index, Texture2D* texture)
 
 void Graphics::SetDepthStencil(RenderSurface* depthStencil)
 {
-    IDirect3DSurface9* newDepthStencilSurface = 0;
+    IDirect3DSurface9* newDepthStencilSurface = nullptr;
     if (depthStencil && depthStencil->GetUsage() == TEXTURE_DEPTHSTENCIL)
     {
         newDepthStencilSurface = (IDirect3DSurface9*)depthStencil->GetSurface();
@@ -1649,7 +1558,7 @@ void Graphics::SetDepthStencil(RenderSurface* depthStencil)
     if (!newDepthStencilSurface)
     {
         newDepthStencilSurface = impl_->defaultDepthStencilSurface_;
-        depthStencil_ = 0;
+        depthStencil_ = nullptr;
     }
     if (newDepthStencilSurface != impl_->depthStencilSurface_)
     {
@@ -1660,7 +1569,7 @@ void Graphics::SetDepthStencil(RenderSurface* depthStencil)
 
 void Graphics::SetDepthStencil(Texture2D* texture)
 {
-    RenderSurface* depthStencil = 0;
+    RenderSurface* depthStencil = nullptr;
     if (texture)
         depthStencil = texture->GetRenderSurface();
 
@@ -1960,7 +1869,7 @@ void Graphics::SetClipPlane(bool enable, const Plane& clipPlane, const Matrix3x4
 
 bool Graphics::IsInitialized() const
 {
-    return window_ != 0 && impl_->GetDevice() != 0;
+    return window_ != nullptr && impl_->GetDevice() != nullptr;
 }
 
 PODVector<int> Graphics::GetMultiSampleLevels() const
@@ -2020,18 +1929,18 @@ ShaderVariation* Graphics::GetShader(ShaderType type, const char* name, const ch
         String fullShaderName = shaderPath_ + name + shaderExtension_;
         // Try to reduce repeated error log prints because of missing shaders
         if (lastShaderName_ == name && !cache->Exists(fullShaderName))
-            return 0;
+            return nullptr;
 
         lastShader_ = cache->GetResource<Shader>(fullShaderName);
         lastShaderName_ = name;
     }
 
-    return lastShader_ ? lastShader_->GetVariation(type, defines) : (ShaderVariation*)0;
+    return lastShader_ ? lastShader_->GetVariation(type, defines) : nullptr;
 }
 
 VertexBuffer* Graphics::GetVertexBuffer(unsigned index) const
 {
-    return index < MAX_VERTEX_STREAMS ? vertexBuffers_[index] : 0;
+    return index < MAX_VERTEX_STREAMS ? vertexBuffers_[index] : nullptr;
 }
 
 TextureUnit Graphics::GetTextureUnit(const String& name)
@@ -2055,12 +1964,12 @@ const String& Graphics::GetTextureUnitName(TextureUnit unit)
 
 Texture* Graphics::GetTexture(unsigned index) const
 {
-    return index < MAX_TEXTURE_UNITS ? textures_[index] : 0;
+    return index < MAX_TEXTURE_UNITS ? textures_[index] : nullptr;
 }
 
 RenderSurface* Graphics::GetRenderTarget(unsigned index) const
 {
-    return index < MAX_RENDERTARGETS ? renderTargets_[index] : 0;
+    return index < MAX_RENDERTARGETS ? renderTargets_[index] : nullptr;
 }
 
 IntVector2 Graphics::GetRenderTargetDimensions() const
@@ -2119,15 +2028,16 @@ void Graphics::OnWindowResized()
     VariantMap& eventData = GetEventDataMap();
     eventData[P_WIDTH] = width_;
     eventData[P_HEIGHT] = height_;
-    eventData[P_FULLSCREEN] = fullscreen_;
-    eventData[P_RESIZABLE] = resizable_;
-    eventData[P_BORDERLESS] = borderless_;
+    eventData[P_FULLSCREEN] = screenParams_.fullscreen_;
+    eventData[P_RESIZABLE] = screenParams_.resizable_;
+    eventData[P_BORDERLESS] = screenParams_.borderless_;
+    eventData[P_HIGHDPI] = screenParams_.highDPI_;
     SendEvent(E_SCREENMODE, eventData);
 }
 
 void Graphics::OnWindowMoved()
 {
-    if (!impl_->device_ || !window_ || fullscreen_)
+    if (!impl_->device_ || !window_ || screenParams_.fullscreen_)
         return;
 
     int newX, newY;
@@ -2139,7 +2049,7 @@ void Graphics::OnWindowMoved()
     position_.x_ = newX;
     position_.y_ = newY;
 
-    URHO3D_LOGDEBUGF("Window was moved to %d,%d", position_.x_, position_.y_);
+    URHO3D_LOGTRACEF("Window was moved to %d,%d", position_.x_, position_.y_);
 
     using namespace WindowPos;
 
@@ -2160,7 +2070,7 @@ void Graphics::CleanupShaderPrograms(ShaderVariation* variation)
     }
 
     if (vertexShader_ == variation || pixelShader_ == variation)
-        impl_->shaderProgram_ = 0;
+        impl_->shaderProgram_ = nullptr;
 }
 
 unsigned Graphics::GetAlphaFormat()
@@ -2346,28 +2256,48 @@ void Graphics::AdjustWindow(int& newWidth, int& newHeight, bool& newFullscreen, 
 {
     if (!externalWindow_)
     {
+        // Keep current window position because it may change in intermediate callbacks
+        const IntVector2 oldPosition = position_;
+        bool reposition = false;
+        bool resizePostponed = false;
         if (!newWidth || !newHeight)
         {
             SDL_MaximizeWindow(window_);
             SDL_GetWindowSize(window_, &newWidth, &newHeight);
         }
         else {
-            if (newFullscreen || newBorderless) 
+            SDL_Rect display_rect;
+            SDL_GetDisplayBounds(monitor, &display_rect);
+
+            reposition = newFullscreen || (newBorderless && newWidth >= display_rect.w && newHeight >= display_rect.h);
+            if (reposition)
             {
-                // Reposition the window on the specified monitor
-                SDL_Rect display_rect;
-                SDL_GetDisplayBounds(monitor, &display_rect);
+                // Reposition the window on the specified monitor if it's supposed to cover the entire monitor
                 SDL_SetWindowPosition(window_, display_rect.x, display_rect.y);
             }
 
-            SDL_SetWindowSize(window_, newWidth, newHeight);
+            // Postpone window resize if exiting fullscreen to avoid redundant resolution change
+            if (!newFullscreen && screenParams_.fullscreen_)
+                resizePostponed = true;
+            else
+                SDL_SetWindowSize(window_, newWidth, newHeight);
         }
 
         // Hack fix: on SDL 2.0.4 a fullscreen->windowed transition results in a maximized window when the D3D device is reset, so hide before
-        SDL_HideWindow(window_);
+        if (!newFullscreen) SDL_HideWindow(window_);
         SDL_SetWindowFullscreen(window_, newFullscreen ? SDL_WINDOW_FULLSCREEN : 0);
         SDL_SetWindowBordered(window_, newBorderless ? SDL_FALSE : SDL_TRUE);
-        SDL_ShowWindow(window_);
+        if (!newFullscreen) SDL_ShowWindow(window_);
+
+        // Resize now if was postponed
+        if (resizePostponed)
+            SDL_SetWindowSize(window_, newWidth, newHeight);
+
+        // Ensure that window keeps its position
+        if (!reposition)
+            SDL_SetWindowPosition(window_, oldPosition.x_, oldPosition.y_);
+        else
+            position_ = oldPosition;
     }
     else
     {
@@ -2551,17 +2481,17 @@ void Graphics::OnDeviceLost()
     if (impl_->defaultColorSurface_)
     {
         impl_->defaultColorSurface_->Release();
-        impl_->defaultColorSurface_ = 0;
+        impl_->defaultColorSurface_ = nullptr;
     }
     if (impl_->defaultDepthStencilSurface_)
     {
         impl_->defaultDepthStencilSurface_->Release();
-        impl_->defaultDepthStencilSurface_ = 0;
+        impl_->defaultDepthStencilSurface_ = nullptr;
     }
     if (impl_->frameQuery_)
     {
         impl_->frameQuery_->Release();
-        impl_->frameQuery_ = 0;
+        impl_->frameQuery_ = nullptr;
     }
 
     {
@@ -2599,13 +2529,13 @@ void Graphics::ResetCachedState()
 {
     for (unsigned i = 0; i < MAX_VERTEX_STREAMS; ++i)
     {
-        vertexBuffers_[i] = 0;
+        vertexBuffers_[i] = nullptr;
         impl_->streamOffsets_[i] = 0;
     }
 
     for (unsigned i = 0; i < MAX_TEXTURE_UNITS; ++i)
     {
-        textures_[i] = 0;
+        textures_[i] = nullptr;
         impl_->minFilters_[i] = D3DTEXF_POINT;
         impl_->magFilters_[i] = D3DTEXF_POINT;
         impl_->mipFilters_[i] = D3DTEXF_NONE;
@@ -2619,21 +2549,21 @@ void Graphics::ResetCachedState()
 
     for (unsigned i = 0; i < MAX_RENDERTARGETS; ++i)
     {
-        renderTargets_[i] = 0;
-        impl_->colorSurfaces_[i] = 0;
+        renderTargets_[i] = nullptr;
+        impl_->colorSurfaces_[i] = nullptr;
     }
 
-    depthStencil_ = 0;
-    impl_->depthStencilSurface_ = 0;
+    depthStencil_ = nullptr;
+    impl_->depthStencilSurface_ = nullptr;
     viewport_ = IntRect(0, 0, width_, height_);
     impl_->sRGBWrite_ = false;
 
     for (unsigned i = 0; i < MAX_VERTEX_STREAMS; ++i)
         impl_->streamFrequencies_[i] = 1;
 
-    indexBuffer_ = 0;
-    vertexShader_ = 0;
-    pixelShader_ = 0;
+    indexBuffer_ = nullptr;
+    vertexShader_ = nullptr;
+    pixelShader_ = nullptr;
     blendMode_ = BLEND_REPLACE;
     alphaToCoverage_ = false;
     colorWrite_ = true;
@@ -2659,7 +2589,7 @@ void Graphics::ResetCachedState()
     impl_->srcBlend_ = D3DBLEND_ONE;
     impl_->destBlend_ = D3DBLEND_ZERO;
     impl_->blendOp_ = D3DBLENDOP_ADD;
-    impl_->vertexDeclaration_ = 0;
+    impl_->vertexDeclaration_ = nullptr;
     impl_->queryIssued_ = false;
 }
 

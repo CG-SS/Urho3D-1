@@ -12,13 +12,12 @@ class Connection : public Object
 {
     void SendMessage(int msgID, bool reliable, bool inOrder, const VectorBuffer& msg, unsigned contentID = 0);
 
-    
     void SendRemoteEvent(StringHash eventType, bool inOrder, const VariantMap& eventData = Variant::emptyVariantMap);
     void SendRemoteEvent(const String eventType, bool inOrder, const VariantMap& eventData = Variant::emptyVariantMap);
-    
+
     void SendRemoteEvent(Node* node, StringHash eventType, bool inOrder, const VariantMap& eventData = Variant::emptyVariantMap);
     void SendRemoteEvent(Node* node, const String eventType, bool inOrder, const VariantMap& eventData = Variant::emptyVariantMap);
-    
+
     void SetScene(Scene* newScene);
     void SetIdentity(const VariantMap& identity);
     void SetControls(const Controls& newControls);
@@ -43,11 +42,11 @@ class Connection : public Object
     String GetAddress() const;
     unsigned short GetPort() const;
     float GetRoundTripTime() const;
-    float GetLastHeardTime() const;
+    unsigned GetLastHeardTime() const;
     float GetBytesInPerSec() const;
     float GetBytesOutPerSec() const;
-    float GetPacketsInPerSec() const;
-    float GetPacketsOutPerSec() const;
+    int GetPacketsInPerSec() const;
+    int GetPacketsOutPerSec() const;
     String ToString() const;
     unsigned GetNumDownloads() const;
     const String GetDownloadName() const;

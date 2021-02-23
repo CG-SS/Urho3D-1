@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2016 Andreas Jonsson
+   Copyright (c) 2003-2020 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -28,7 +28,7 @@
    andreas@angelcode.com
 */
 
-// Modified by Lasse Oorni and Nathanial Lydick for Urho3D
+// Modified for Urho3D
 
 //
 // angelscript.h
@@ -40,8 +40,8 @@
 #ifndef ANGELSCRIPT_H
 #define ANGELSCRIPT_H
 
-// Urho3D: Define AS_MAX_PORTABILITY for Web and 64-bit ARM platforms
-#if defined(__EMSCRIPTEN__) || defined(__aarch64__)
+// Urho3D: Define AS_MAX_PORTABILITY for Web and 64-bit ARM / MCST Elbrus 2000 platforms
+#if defined(__EMSCRIPTEN__) || defined(__aarch64__) || defined(__e2k__)
 #define AS_MAX_PORTABILITY
 #endif
 
@@ -64,8 +64,8 @@ BEGIN_AS_NAMESPACE
 
 // AngelScript version
 
-#define ANGELSCRIPT_VERSION        23102
-#define ANGELSCRIPT_VERSION_STRING "2.31.2"
+#define ANGELSCRIPT_VERSION        23500
+#define ANGELSCRIPT_VERSION_STRING "2.35.0"
 
 // Data types
 
@@ -75,15 +75,12 @@ class asIScriptContext;
 class asIScriptGeneric;
 class asIScriptObject;
 class asITypeInfo;
-#ifdef AS_DEPRECATED
-// deprecated since 2.31.0 - 2015/11/18
-typedef asITypeInfo asIObjectType;
-#endif
 class asIScriptFunction;
 class asIBinaryStream;
 class asIJITCompiler;
 class asIThreadManager;
 class asILockableSharedBool;
+class asIStringFactory;
 
 // Enumerations and constants
 
@@ -150,6 +147,11 @@ enum asEEngineProp
 	asEP_PRIVATE_PROP_AS_PROTECTED          = 24,
 	asEP_ALLOW_UNICODE_IDENTIFIERS          = 25,
 	asEP_HEREDOC_TRIM_MODE                  = 26,
+	asEP_MAX_NESTED_CALLS                   = 27,
+	asEP_GENERIC_CALL_MODE                  = 28,
+	asEP_INIT_STACK_SIZE                    = 29,
+	asEP_INIT_CALL_STACK_SIZE               = 30,
+	asEP_MAX_CALL_STACK_SIZE                = 31,
 
 	asEP_LAST_PROPERTY
 };
@@ -199,6 +201,7 @@ enum asEObjTypeFlags
 	asOBJ_APP_CLASS_A                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT),
 	asOBJ_APP_CLASS_AK               = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
 	asOBJ_APP_CLASS_K                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
+	asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (1<<31),
 	asOBJ_APP_PRIMITIVE              = (1<<13),
 	asOBJ_APP_FLOAT                  = (1<<14),
 	asOBJ_APP_ARRAY                  = (1<<15),
@@ -207,7 +210,7 @@ enum asEObjTypeFlags
 	asOBJ_NOCOUNT                    = (1<<18),
 	asOBJ_APP_CLASS_ALIGN8           = (1<<19),
 	asOBJ_IMPLICIT_HANDLE            = (1<<20),
-	asOBJ_MASK_VALID_FLAGS           = 0x1FFFFF,
+	asOBJ_MASK_VALID_FLAGS           = 0x801FFFFF,
 	// Internal flags
 	asOBJ_SCRIPT_OBJECT              = (1<<21),
 	asOBJ_SHARED                     = (1<<22),
@@ -237,14 +240,6 @@ enum asEBehaviours
 	asBEHAVE_GET_WEAKREF_FLAG,
 
 	// Object operators
-#ifdef AS_DEPRECATED
-	// Deprecated since 2.30.0, 2014-10-24
-	asBEHAVE_VALUE_CAST,
-	asBEHAVE_IMPLICIT_VALUE_CAST,
-	// Deprecated since 2.30.0, 2014-12-30
-	asBEHAVE_REF_CAST,
-	asBEHAVE_IMPLICIT_REF_CAST,
-#endif
 	asBEHAVE_TEMPLATE_CALLBACK,
 
 	// Garbage collection behaviours
@@ -368,6 +363,8 @@ enum asEFuncType
 // asQWORD = 64 bits
 // asPWORD = size of pointer
 //
+typedef signed char    asINT8;
+typedef signed short   asINT16;
 typedef unsigned char  asBYTE;
 typedef unsigned short asWORD;
 typedef unsigned int   asUINT;
@@ -395,7 +392,7 @@ typedef unsigned int   asUINT;
 #endif
 
 // Is the target a 64bit system?
-#if defined(__LP64__) || defined(__amd64__) || defined(__x86_64__) || defined(_M_X64)
+#if defined(__LP64__) || defined(__amd64__) || defined(__x86_64__) || defined(_M_X64) || defined(__aarch64__) || defined(_M_ARM64)
 	#ifndef AS_64BIT_PTR
 		#define AS_64BIT_PTR
 	#endif
@@ -410,29 +407,25 @@ typedef void (*asCLEANMODULEFUNC_t)(asIScriptModule *);
 typedef void (*asCLEANCONTEXTFUNC_t)(asIScriptContext *);
 typedef void (*asCLEANFUNCTIONFUNC_t)(asIScriptFunction *);
 typedef void (*asCLEANTYPEINFOFUNC_t)(asITypeInfo *);
-#ifdef AS_DEPRECATED
-// deprecated since 2.31.0 - 2015/11/18
-typedef asCLEANTYPEINFOFUNC_t asCLEANOBJECTTYPEFUNC_t;
-#endif
 typedef void (*asCLEANSCRIPTOBJECTFUNC_t)(asIScriptObject *);
 typedef asIScriptContext *(*asREQUESTCONTEXTFUNC_t)(asIScriptEngine *, void *);
 typedef void (*asRETURNCONTEXTFUNC_t)(asIScriptEngine *, asIScriptContext *, void *);
+typedef void (*asCIRCULARREFFUNC_t)(asITypeInfo *, const void *, void *);
 
 // Check if the compiler can use C++11 features
-// Urho3D: restored earlier ifdef
 #if !defined(_MSC_VER) || _MSC_VER >= 1700   // MSVC 2012
-#if !defined(__GNUC__) || __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)  // gnuc 4.7
-#if !(defined(__GNUC__) && defined(__cplusplus) && __cplusplus < 201103L) // g++ -std=c++11
-#if !defined(__SUNPRO_CC)
-#define AS_CAN_USE_CPP11 1
-#endif
-#endif
-#endif
+ #if !defined(__GNUC__) || defined(__clang__) || __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)  // gnuc 4.7 or clang
+  #if !(defined(__GNUC__) && defined(__cplusplus) && __cplusplus < 201103L) // gnuc and clang require compiler flag -std=c++11
+   #if !defined(__SUNPRO_CC) // Oracle Solaris Studio
+    #define AS_CAN_USE_CPP11 1
+   #endif
+  #endif
+ #endif
 #endif
 
 // This macro does basically the same thing as offsetof defined in stddef.h, but
 // GNUC should not complain about the usage as I'm not using 0 as the base pointer.
-#define asOFFSET(s,m) ((size_t)(&reinterpret_cast<s*>(100000)->m)-100000)
+#define asOFFSET(s,m) ((int)(size_t)(&reinterpret_cast<s*>(100000)->m)-100000)
 
 #define asFUNCTION(f) asFunctionPtr(f)
 #if (defined(_MSC_VER) && _MSC_VER <= 1200) || (defined(__BORLANDC__) && __BORLANDC__ < 0x590)
@@ -441,11 +434,8 @@ typedef void (*asRETURNCONTEXTFUNC_t)(asIScriptEngine *, asIScriptContext *, voi
 // check that the cast is really valid.
 // BCC v5.8 (C++Builder 2006) and earlier have a similar bug which forces us to fall back to a C-style cast.
 #define asFUNCTIONPR(f,p,r) asFunctionPtr((void (*)())((r (*)p)(f)))
-#elif (defined(_MSC_VER) && _MSC_VER >= 1900)
-// Urho3D: VS2015 does not compile the C-style cast of the function pointer
-#define asFUNCTIONPR(f,p,r) asFunctionPtr(reinterpret_cast<void (*)()>(static_cast<r (*)p>(f)))
 #else
-#define asFUNCTIONPR(f,p,r) asFunctionPtr((void (*)())(static_cast<r (*)p>(f)))
+#define asFUNCTIONPR(f,p,r) asFunctionPtr(reinterpret_cast<void (*)()>(static_cast<r (*)p>(f)))
 #endif
 
 #ifndef AS_NO_CLASS_METHODS
@@ -604,15 +594,25 @@ BEGIN_AS_NAMESPACE
 template<typename T>
 asUINT asGetTypeTraits()
 {
-// Urho3D: restore earlier ifdefs due to some Android CI builds breaking
-#if defined(_MSC_VER) || defined(_LIBCPP_TYPE_TRAITS) || (__GNUC__ >= 5)
+// Urho3D: commented out original
+//#if defined(_MSC_VER) || defined(_LIBCPP_TYPE_TRAITS) || (__GNUC__ >= 5) || defined(__clang__)
+
+// Urho3D: Clang compiler built with old GCC's libstdc++ suffers the same pre-standard templates problem as old GCC compiler
+#if defined(_MSC_VER) || defined(_LIBCPP_TYPE_TRAITS) || (__GNUC__ >= 5) || (defined(__clang__) && !defined(CLANG_PRE_STANDARD))
+
 	// MSVC, XCode/Clang, and gnuc 5+
 	// C++11 compliant code
 	bool hasConstructor        = std::is_default_constructible<T>::value && !std::is_trivially_default_constructible<T>::value;
 	bool hasDestructor         = std::is_destructible<T>::value          && !std::is_trivially_destructible<T>::value;
 	bool hasAssignmentOperator = std::is_copy_assignable<T>::value       && !std::is_trivially_copy_assignable<T>::value;
 	bool hasCopyConstructor    = std::is_copy_constructible<T>::value    && !std::is_trivially_copy_constructible<T>::value;
-#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
+
+// Urho3D: commented out original
+//#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
+
+// Urho3D
+#elif (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))) || defined(__clang__)
+
 	// gnuc 4.8 is using a mix of C++11 standard and pre-standard templates
 	bool hasConstructor        = std::is_default_constructible<T>::value && !std::has_trivial_default_constructor<T>::value;
 	bool hasDestructor         = std::is_destructible<T>::value          && !std::is_trivially_destructible<T>::value;
@@ -700,21 +700,16 @@ public:
 
 	// Object types
 	virtual int            RegisterObjectType(const char *obj, int byteSize, asDWORD flags) = 0;
-	virtual int            RegisterObjectProperty(const char *obj, const char *declaration, int byteOffset) = 0;
-	virtual int            RegisterObjectMethod(const char *obj, const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = 0) = 0;
-	virtual int            RegisterObjectBehaviour(const char *obj, asEBehaviours behaviour, const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = 0) = 0;
+	virtual int            RegisterObjectProperty(const char *obj, const char *declaration, int byteOffset, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;
+	virtual int            RegisterObjectMethod(const char *obj, const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = 0, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;
+	virtual int            RegisterObjectBehaviour(const char *obj, asEBehaviours behaviour, const char *declaration, const asSFuncPtr &funcPointer, asDWORD callConv, void *auxiliary = 0, int compositeOffset = 0, bool isCompositeIndirect = false) = 0;
 	virtual int            RegisterInterface(const char *name) = 0;
 	virtual int            RegisterInterfaceMethod(const char *intf, const char *declaration) = 0;
 	virtual asUINT         GetObjectTypeCount() const = 0;
 	virtual asITypeInfo   *GetObjectTypeByIndex(asUINT index) const = 0;
-#ifdef AS_DEPRECATED
-	// Deprecated since 2.31.0, 2015-12-06
-	virtual asITypeInfo   *GetObjectTypeByName(const char *name) const = 0;
-	virtual asITypeInfo   *GetObjectTypeByDecl(const char *decl) const = 0;
-#endif
 
 	// String factory
-	virtual int RegisterStringFactory(const char *datatype, const asSFuncPtr &factoryFunc, asDWORD callConv, void *auxiliary = 0) = 0;
+	virtual int RegisterStringFactory(const char *datatype, asIStringFactory *factory) = 0;
 	virtual int GetStringFactoryReturnTypeId(asDWORD *flags = 0) const = 0;
 
 	// Default array type
@@ -726,10 +721,6 @@ public:
 	virtual int          RegisterEnumValue(const char *type, const char *name, int value) = 0;
 	virtual asUINT       GetEnumCount() const = 0;
 	virtual asITypeInfo *GetEnumByIndex(asUINT index) const = 0;
-	// Urho3D: Removed deprecation for ScriptAPIDump
-	// Deprecated since 2.31.0, 2015-12-06
-	virtual int          GetEnumValueCount(int enumTypeId) const = 0;
-	virtual const char * GetEnumValueByIndex(int enumTypeId, asUINT index, int *outValue) const = 0;
 
 	// Funcdefs
 	virtual int          RegisterFuncdef(const char *decl) = 0;
@@ -757,16 +748,8 @@ public:
 
 	// Script functions
 	virtual asIScriptFunction *GetFunctionById(int funcId) const = 0;
-#ifdef AS_DEPRECATED
-	// deprecated since 2.31.0, 2016-01-01
-	virtual asIScriptFunction *GetFuncdefFromTypeId(int typeId) const = 0;
-#endif
 
 	// Type identification
-#ifdef AS_DEPRECATED
-	// Deprecated since 2.31.0, 2015-12-06
-	virtual asITypeInfo   *GetObjectTypeById(int typeId) const = 0;
-#endif
 	virtual int            GetTypeIdByDecl(const char *decl) const = 0;
 	virtual const char    *GetTypeDeclaration(int typeId, bool includeNamespace = false) const = 0;
 	virtual int            GetSizeOfPrimitiveType(int typeId) const = 0;
@@ -784,10 +767,6 @@ public:
 	virtual void                   ReleaseScriptObject(void *obj, const asITypeInfo *type) = 0;
 	virtual void                   AddRefScriptObject(void *obj, const asITypeInfo *type) = 0;
 	virtual int                    RefCastObject(void *obj, asITypeInfo *fromType, asITypeInfo *toType, void **newPtr, bool useOnlyImplicitCast = false) = 0;
-#ifdef AS_DEPRECATED
-	// Deprecated since 2.30.0, 2014-11-04
-	virtual bool                   IsHandleCompatibleWithObject(void *obj, int objTypeId, int handleTypeId) const = 0;
-#endif
 	virtual asILockableSharedBool *GetWeakRefFlagOfScriptObject(void *obj, const asITypeInfo *type) const = 0;
 
 	// Context pooling
@@ -804,6 +783,9 @@ public:
 	virtual int  NotifyGarbageCollectorOfNewObject(void *obj, asITypeInfo *type) = 0;
 	virtual int  GetObjectInGC(asUINT idx, asUINT *seqNbr = 0, void **obj = 0, asITypeInfo **type = 0) = 0;
 	virtual void GCEnumCallback(void *reference) = 0;
+	virtual void ForwardGCEnumReferences(void *ref, asITypeInfo *type) = 0;
+	virtual void ForwardGCReleaseReferences(void *ref, asITypeInfo *type) = 0;
+	virtual void SetCircularRefDetectedCallback(asCIRCULARREFFUNC_t callback, void *param = 0) = 0;
 
 	// User data
 	virtual void *SetUserData(void *data, asPWORD type = 0) = 0;
@@ -812,15 +794,25 @@ public:
 	virtual void  SetModuleUserDataCleanupCallback(asCLEANMODULEFUNC_t callback, asPWORD type = 0) = 0;
 	virtual void  SetContextUserDataCleanupCallback(asCLEANCONTEXTFUNC_t callback, asPWORD type = 0) = 0;
 	virtual void  SetFunctionUserDataCleanupCallback(asCLEANFUNCTIONFUNC_t callback, asPWORD type = 0) = 0;
-#ifdef AS_DEPRECATED
-	// Deprecated since 2.31.0, 2015-12-06
-	virtual void  SetObjectTypeUserDataCleanupCallback(asCLEANTYPEINFOFUNC_t callback, asPWORD type = 0) = 0;
-#endif
 	virtual void  SetTypeInfoUserDataCleanupCallback(asCLEANTYPEINFOFUNC_t callback, asPWORD type = 0) = 0;
 	virtual void  SetScriptObjectUserDataCleanupCallback(asCLEANSCRIPTOBJECTFUNC_t callback, asPWORD type = 0) = 0;
 
+	// Exception handling
+	virtual int SetTranslateAppExceptionCallback(asSFuncPtr callback, void *param, int callConv) = 0;
+
 protected:
 	virtual ~asIScriptEngine() {}
+};
+
+class asIStringFactory
+{
+public:
+	virtual const void *GetStringConstant(const char *data, asUINT length) = 0;
+	virtual int         ReleaseStringConstant(const void *str) = 0;
+	virtual int         GetRawStringData(const void *str, char *data, asUINT *length) const = 0;
+
+protected:
+	virtual ~asIStringFactory() {}
 };
 
 class asIThreadManager
@@ -866,11 +858,6 @@ public:
 	// Type identification
 	virtual asUINT         GetObjectTypeCount() const = 0;
 	virtual asITypeInfo   *GetObjectTypeByIndex(asUINT index) const = 0;
-#ifdef AS_DEPRECATED
-	// Deprecated since 2.31.0, 2015-12-06
-	virtual asITypeInfo   *GetObjectTypeByName(const char *name) const = 0;
-	virtual asITypeInfo   *GetObjectTypeByDecl(const char *decl) const = 0;
-#endif
 	virtual int            GetTypeIdByDecl(const char *decl) const = 0;
 	virtual asITypeInfo   *GetTypeInfoByName(const char *name) const = 0;
 	virtual asITypeInfo   *GetTypeInfoByDecl(const char *decl) const = 0;
@@ -878,11 +865,6 @@ public:
 	// Enums
 	virtual asUINT       GetEnumCount() const = 0;
 	virtual asITypeInfo *GetEnumByIndex(asUINT index) const = 0;
-#ifdef AS_DEPRECATED
-	// Deprecated since 2.31.0, 2015-12-06
-	virtual int          GetEnumValueCount(int enumTypeId) const = 0;
-	virtual const char * GetEnumValueByIndex(int enumTypeId, asUINT index, int *outValue) const = 0;
-#endif
 
 	// Typedefs
 	virtual asUINT       GetTypedefCount() const = 0;
@@ -958,10 +940,11 @@ public:
 	virtual void   *GetAddressOfReturnValue() = 0;
 
 	// Exception handling
-	virtual int                SetException(const char *string) = 0;
+	virtual int                SetException(const char *info, bool allowCatch = true) = 0;
 	virtual int                GetExceptionLineNumber(int *column = 0, const char **sectionName = 0) = 0;
 	virtual asIScriptFunction *GetExceptionFunction() = 0;
 	virtual const char *       GetExceptionString() = 0;
+	virtual bool               WillExceptionBeCaught() = 0;
 	virtual int                SetExceptionCallback(asSFuncPtr callback, void *obj, int callConv) = 0;
 	virtual void               ClearExceptionCallback() = 0;
 
@@ -1050,7 +1033,7 @@ public:
 
 	// Miscellaneous
 	virtual asIScriptEngine *GetEngine() const = 0;
-	virtual int              CopyFrom(asIScriptObject *other) = 0;
+	virtual int              CopyFrom(const asIScriptObject *other) = 0;
 
 	// User data
 	virtual void *SetUserData(void *data, asPWORD type = 0) = 0;
@@ -1103,7 +1086,7 @@ public:
 
 	// Properties
 	virtual asUINT      GetPropertyCount() const = 0;
-	virtual int         GetProperty(asUINT index, const char **name, int *typeId = 0, bool *isPrivate = 0, bool *isProtected = 0, int *offset = 0, bool *isReference = 0, asDWORD *accessMask = 0) const = 0;
+	virtual int         GetProperty(asUINT index, const char **name, int *typeId = 0, bool *isPrivate = 0, bool *isProtected = 0, int *offset = 0, bool *isReference = 0, asDWORD *accessMask = 0, int *compositeOffset = 0, bool *isCompositeIndirect = 0) const = 0;
 	virtual const char *GetPropertyDeclaration(asUINT index, bool includeNamespace = false) const = 0;
 
 	// Behaviours
@@ -1164,12 +1147,10 @@ public:
 	virtual bool             IsFinal() const = 0;
 	virtual bool             IsOverride() const = 0;
 	virtual bool             IsShared() const = 0;
+	virtual bool             IsExplicit() const = 0;
+	virtual bool             IsProperty() const = 0;
 	virtual asUINT           GetParamCount() const = 0;
 	virtual int              GetParam(asUINT index, int *typeId, asDWORD *flags = 0, const char **name = 0, const char **defaultArg = 0) const = 0;
-#ifdef AS_DEPRECATED
-	// Deprecated since 2.29.0, 2014-04-06
-	virtual int              GetParamTypeId(asUINT index, asDWORD *flags = 0) const = 0;
-#endif
 	virtual int              GetReturnTypeId(asDWORD *flags = 0) const = 0;
 
 	// Type id for function pointers
@@ -1201,8 +1182,8 @@ protected:
 class asIBinaryStream
 {
 public:
-	virtual void Read(void *ptr, asUINT size) = 0;
-	virtual void Write(const void *ptr, asUINT size) = 0;
+	virtual int Read(void *ptr, asUINT size) = 0;
+	virtual int Write(const void *ptr, asUINT size) = 0;
 
 public:
 	virtual ~asIBinaryStream() {}
@@ -1624,6 +1605,7 @@ enum asEBCInstr
 	asBC_MAXBYTECODE	= 201,
 
 	// Temporary tokens. Can't be output to the final program
+	asBC_TryBlock		= 250,
 	asBC_VarDecl		= 251,
 	asBC_Block			= 252,
 	asBC_ObjInfo		= 253,
@@ -1966,8 +1948,8 @@ const asSBCInfo asBCInfo[256] =
 	asBCINFO_DUMMY(247),
 	asBCINFO_DUMMY(248),
 	asBCINFO_DUMMY(249),
-	asBCINFO_DUMMY(250),
 
+	asBCINFO(TryBlock,		DW_ARG,			0),
 	asBCINFO(VarDecl,		W_ARG,			0),
 	asBCINFO(Block,			INFO,			0),
 	asBCINFO(ObjInfo,		rW_DW_ARG,		0),
@@ -1987,15 +1969,6 @@ const asSBCInfo asBCInfo[256] =
 #define asBC_SWORDARG1(x) (*(((short*)x)+2))
 #define asBC_SWORDARG2(x) (*(((short*)x)+3))
 
-// Urho3D: Include the wrapper macros file but only after they have been defined above
-// This causes a large number of warnings, which could possibly be prevented with further
-// changes to the library or the Urho Angelscript code
-// Only include this file if we are NOT building the angelscript library itself,
-// as Angelscript already provides generic wrappers for their classes
-// (AS_IS_BUILDING is defined in the CMakeLists.txt file for the AngelScript (sub)library)
-#ifndef AS_IS_BUILDING
-#include "wrapmacros.h"
-#endif
 
 END_AS_NAMESPACE
 

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +57,7 @@ void HttpRequestDemo::Start()
 
 void HttpRequestDemo::CreateUI()
 {
-    ResourceCache* cache = GetSubsystem<ResourceCache>();
+    auto* cache = GetSubsystem<ResourceCache>();
 
     // Construct new Text object
     text_ = new Text(context_);
@@ -82,10 +82,14 @@ void HttpRequestDemo::SubscribeToEvents()
 
 void HttpRequestDemo::HandleUpdate(StringHash eventType, VariantMap& eventData)
 {
-    Network* network = GetSubsystem<Network>();
+    auto* network = GetSubsystem<Network>();
 
     if (httpRequest_.Null())
+#ifdef URHO3D_SSL
+        httpRequest_ = network->MakeHttpRequest("https://api.ipify.org/?format=json");
+#else
         httpRequest_ = network->MakeHttpRequest("http://httpbin.org/ip");
+#endif
     else
     {
         // Initializing HTTP request
@@ -94,8 +98,9 @@ void HttpRequestDemo::HandleUpdate(StringHash eventType, VariantMap& eventData)
         // An error has occurred
         else if (httpRequest_->GetState() == HTTP_ERROR)
         {
-            text_->SetText("An error has occurred.");
+            text_->SetText("An error has occurred: " + httpRequest_->GetError());
             UnsubscribeFromEvent("Update");
+            URHO3D_LOGERRORF("HttpRequest error: %s", httpRequest_->GetError().CString());
         }
         // Get message data
         else
@@ -109,10 +114,14 @@ void HttpRequestDemo::HandleUpdate(StringHash eventType, VariantMap& eventData)
                 SharedPtr<JSONFile> json(new JSONFile(context_));
                 json->FromString(message_);
 
+#ifdef URHO3D_SSL
+                JSONValue val = json->GetRoot().Get("ip");
+#else
                 JSONValue val = json->GetRoot().Get("origin");
+#endif
 
                 if (val.IsNull())
-                    text_->SetText("Invalid string.");
+                    text_->SetText("Invalid JSON response retrieved!");
                 else
                     text_->SetText("Your IP is: " + val.GetString());
 

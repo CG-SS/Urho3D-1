@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2008-2017 the Urho3D project.
+# Copyright (c) 2008-2020 the Urho3D project.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,5 +35,5 @@ set (INCLUDE_DIRS .)
 # Setup target
 setup_library ()
 
-# Install headers for building the Urho3D library
-install_header_files (DIRECTORY ./ DESTINATION ${DEST_INCLUDE_DIR}/ThirdParty/GLEW FILES_MATCHING PATTERN *.h BUILD_TREE_ONLY)  # Note: the trailing slash is significant
+# Install headers for building and using the Urho3D library (install dependency for OGLGraphicsImpl.h)
+install_header_files (DIRECTORY ./ DESTINATION ${DEST_INCLUDE_DIR}/ThirdParty/GLEW FILES_MATCHING PATTERN *.h)  # Note: the trailing slash is significant

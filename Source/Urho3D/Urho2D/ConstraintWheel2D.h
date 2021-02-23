@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,51 +34,66 @@ class URHO3D_API ConstraintWheel2D : public Constraint2D
 
 public:
     /// Construct.
-    ConstraintWheel2D(Context* context);
+    explicit ConstraintWheel2D(Context* context);
     /// Destruct.
-    virtual ~ConstraintWheel2D();
+    ~ConstraintWheel2D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Set anchor.
+    /// @property
     void SetAnchor(const Vector2& anchor);
     /// Set axis.
+    /// @property
     void SetAxis(const Vector2& axis);
     /// Set enable motor.
+    /// @property
     void SetEnableMotor(bool enableMotor);
     /// Set max motor torque.
+    /// @property
     void SetMaxMotorTorque(float maxMotorTorque);
     /// Set motor speed.
+    /// @property
     void SetMotorSpeed(float motorSpeed);
     /// Set frequency Hz.
+    /// @property
     void SetFrequencyHz(float frequencyHz);
     /// Set damping ratio.
+    /// @property
     void SetDampingRatio(float dampingRatio);
 
     /// Return anchor.
+    /// @property
     const Vector2& GetAnchor() const { return anchor_; }
 
     /// Return axis.
+    /// @property
     const Vector2& GetAxis() const { return axis_; }
 
     /// Return enable motor.
+    /// @property
     bool GetEnableMotor() const { return jointDef_.enableMotor; }
 
     /// Return maxMotor torque.
+    /// @property
     float GetMaxMotorTorque() const { return jointDef_.maxMotorTorque; }
 
     /// Return motor speed.
+    /// @property
     float GetMotorSpeed() const { return jointDef_.motorSpeed; }
 
     /// Return frequency Hz.
+    /// @property
     float GetFrequencyHz() const { return jointDef_.frequencyHz; }
 
     /// Return damping ratio.
+    /// @property
     float GetDampingRatio() const { return jointDef_.dampingRatio; }
 
 private:
     /// Return joint def.
-    virtual b2JointDef* GetJointDef();
+    b2JointDef* GetJointDef() override;
 
     /// Box2D joint def.
     b2WheelJointDef jointDef_;

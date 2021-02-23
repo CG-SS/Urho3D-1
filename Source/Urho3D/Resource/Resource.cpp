@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -42,10 +42,15 @@ bool Resource::Load(Deserializer& source)
 {
     // Because BeginLoad() / EndLoad() can be called from worker threads, where profiling would be a no-op,
     // create a type name -based profile block here
-#ifdef URHO3D_PROFILING
+#ifdef URHO3D_TRACY_PROFILING
+    URHO3D_PROFILE_COLOR(Load, URHO3D_PROFILE_RESOURCE_COLOR);
+
+    String profileBlockName("Load" + GetTypeName());
+    URHO3D_PROFILE_STR(profileBlockName.CString(), profileBlockName.Length());
+#elif defined(URHO3D_PROFILING)
     String profileBlockName("Load" + GetTypeName());
 
-    Profiler* profiler = GetSubsystem<Profiler>();
+    auto* profiler = GetSubsystem<Profiler>();
     if (profiler)
         profiler->BeginBlock(profileBlockName.CString());
 #endif

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -42,10 +42,11 @@ class URHO3D_API SoundSource : public Component
 
 public:
     /// Construct.
-    SoundSource(Context* context);
-    /// Destruct. Remove self from the audio subsystem
-    virtual ~SoundSource();
+    explicit SoundSource(Context* context);
+    /// Destruct. Remove self from the audio subsystem.
+    ~SoundSource() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Seek to time.
@@ -63,48 +64,62 @@ public:
     /// Stop playback.
     void Stop();
     /// Set sound type, determines the master gain group.
+    /// @property
     void SetSoundType(const String& type);
     /// Set frequency.
+    /// @property
     void SetFrequency(float frequency);
     /// Set gain. 0.0 is silence, 1.0 is full volume.
+    /// @property
     void SetGain(float gain);
     /// Set attenuation. 1.0 is unaltered. Used for distance attenuated playback.
     void SetAttenuation(float attenuation);
     /// Set stereo panning. -1.0 is full left and 1.0 is full right.
+    /// @property
     void SetPanning(float panning);
     /// Set to remove either the sound source component or its owner node from the scene automatically on sound playback completion. Disabled by default.
+    /// @property
     void SetAutoRemoveMode(AutoRemoveMode mode);
     /// Set new playback position.
     void SetPlayPosition(signed char* pos);
 
     /// Return sound.
+    /// @property
     Sound* GetSound() const { return sound_; }
 
     /// Return playback position.
     volatile signed char* GetPlayPosition() const { return position_; }
 
     /// Return sound type, determines the master gain group.
+    /// @property
     String GetSoundType() const { return soundType_; }
 
     /// Return playback time position.
+    /// @property
     float GetTimePosition() const { return timePosition_; }
 
     /// Return frequency.
+    /// @property
     float GetFrequency() const { return frequency_; }
 
     /// Return gain.
+    /// @property
     float GetGain() const { return gain_; }
 
     /// Return attenuation.
+    /// @property
     float GetAttenuation() const { return attenuation_; }
 
     /// Return stereo panning.
+    /// @property
     float GetPanning() const { return panning_; }
 
     /// Return automatic removal mode on sound playback completion.
+    /// @property
     AutoRemoveMode GetAutoRemoveMode() const { return autoRemove_; }
 
     /// Return whether is playing.
+    /// @property
     bool IsPlaying() const;
 
     /// Update the sound source. Perform subclass specific operations. Called by Audio.
@@ -120,7 +135,7 @@ public:
     void SetPositionAttr(int value);
     /// Return sound attribute.
     ResourceRef GetSoundAttr() const;
-    /// Set sound playing attribute
+    /// Set sound playing attribute.
     void SetPlayingAttr(bool value);
     /// Return sound position attribute.
     int GetPositionAttr() const;
@@ -141,7 +156,7 @@ protected:
     /// Stereo panning.
     float panning_;
     /// Effective master gain.
-    float masterGain_;
+    float masterGain_{};
     /// Whether finished event should be sent on playback stop.
     bool sendFinishedEvent_;
     /// Automatic removal mode.
@@ -151,11 +166,11 @@ private:
     /// Play a sound without locking the audio mutex. Called internally.
     void PlayLockless(Sound* sound);
     /// Play a sound stream without locking the audio mutex. Called internally.
-    void PlayLockless(SharedPtr<SoundStream> stream);
+    void PlayLockless(const SharedPtr<SoundStream>& stream);
     /// Stop sound without locking the audio mutex. Called internally.
     void StopLockless();
     /// Set new playback position without locking the audio mutex. Called internally.
-    void SetPlayPositionLockless(signed char* position);
+    void SetPlayPositionLockless(signed char* pos);
     /// Mix mono sample to mono buffer.
     void MixMonoToMono(Sound* sound, int* dest, unsigned samples, int mixRate);
     /// Mix mono sample to stereo buffer.

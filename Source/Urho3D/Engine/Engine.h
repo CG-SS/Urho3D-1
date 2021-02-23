@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,9 +38,9 @@ class URHO3D_API Engine : public Object
 
 public:
     /// Construct.
-    Engine(Context* context);
+    explicit Engine(Context* context);
     /// Destruct. Free all subsystems.
-    virtual ~Engine();
+    ~Engine() override;
 
     /// Initialize engine using parameters given and show the application window. Return true if successful.
     bool Initialize(const VariantMap& parameters);
@@ -48,25 +48,31 @@ public:
     bool InitializeResourceCache(const VariantMap& parameters, bool removeOld = true);
     /// Run one frame.
     void RunFrame();
-    /// Create the console and return it. May return null if engine configuration does not allow creation (headless mode.)
+    /// Create the console and return it. May return null if engine configuration does not allow creation (headless mode).
     Console* CreateConsole();
     /// Create the debug hud.
     DebugHud* CreateDebugHud();
     /// Set minimum frames per second. If FPS goes lower than this, time will appear to slow down.
+    /// @property
     void SetMinFps(int fps);
     /// Set maximum frames per second. The engine will sleep if FPS is higher than this.
+    /// @property
     void SetMaxFps(int fps);
     /// Set maximum frames per second when the application does not have input focus.
+    /// @property
     void SetMaxInactiveFps(int fps);
     /// Set how many frames to average for timestep smoothing. Default is 2. 1 disables smoothing.
+    /// @property
     void SetTimeStepSmoothing(int frames);
     /// Set whether to pause update events and audio when minimized.
+    /// @property
     void SetPauseMinimized(bool enable);
-    /// Set whether to exit automatically on exit request (window close button.)
+    /// Set whether to exit automatically on exit request (window close button).
+    /// @property
     void SetAutoExit(bool enable);
     /// Override timestep of the next frame. Should be called in between RunFrame() calls.
     void SetNextTimeStep(float seconds);
-    /// Close the graphics window and set the exit flag. No-op on iOS, as an iOS application can not legally exit.
+    /// Close the graphics window and set the exit flag. No-op on iOS/tvOS, as an iOS/tvOS application can not legally exit.
     void Exit();
     /// Dump profiling information to the log.
     void DumpProfiler();
@@ -79,30 +85,39 @@ public:
     float GetNextTimeStep() const { return timeStep_; }
 
     /// Return the minimum frames per second.
+    /// @property
     int GetMinFps() const { return minFps_; }
 
     /// Return the maximum frames per second.
+    /// @property
     int GetMaxFps() const { return maxFps_; }
 
     /// Return the maximum frames per second when the application does not have input focus.
+    /// @property
     int GetMaxInactiveFps() const { return maxInactiveFps_; }
 
     /// Return how many frames to average for timestep smoothing.
+    /// @property
     int GetTimeStepSmoothing() const { return timeStepSmoothing_; }
 
     /// Return whether to pause update events and audio when minimized.
+    /// @property
     bool GetPauseMinimized() const { return pauseMinimized_; }
 
     /// Return whether to exit automatically on exit request.
+    /// @property
     bool GetAutoExit() const { return autoExit_; }
 
     /// Return whether engine has been initialized.
+    /// @property
     bool IsInitialized() const { return initialized_; }
 
     /// Return whether exit has been requested.
+    /// @property
     bool IsExiting() const { return exiting_; }
 
     /// Return whether the engine has been created in headless mode.
+    /// @property
     bool IsHeadless() const { return headless_; }
 
     /// Send frame update events.

@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2016 Andreas Jonsson
+   Copyright (c) 2003-2020 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -28,8 +28,7 @@
    andreas@angelcode.com
 */
 
-// Modified by Yao Wei Tjong and Skrylar for Urho3D
-
+// Modified for Urho3D
 
 //
 // as_config.h
@@ -178,6 +177,14 @@
 // Oracle Solaris Studio (previously known as Sun CC compiler)
 // __SUNPRO_CC is defined
 
+// Local (or Little) C Compiler
+// __LCC__ is defined
+// __e2k__ is not defined
+
+// MCST eLbrus C Compiler
+// __LCC__ is defined
+// __e2k__ is defined
+
 
 
 //
@@ -209,6 +216,9 @@
 // AS_ARM
 // Use assembler code for the ARM CPU family
 
+// AS_ARM64
+// Use assembler code for the ARM64/AArch64 CPU family
+
 // AS_SOFTFP
 // Use to tell compiler that ARM soft-float ABI
 // should be used instead of ARM hard-float ABI
@@ -227,6 +237,10 @@
 
 // AS_SPARC
 // Define this for SPARC CPU family
+
+// AS_E2K
+// Define this for MCST Elbrus 2000 CPU family
+
 
 
 
@@ -360,6 +374,14 @@
 #define AS_NO_THISCALL_FUNCTOR_METHOD
 
 
+// Emscripten compiler toolchain
+// ref: https://emscripten.org/
+#if defined(__EMSCRIPTEN__)
+  #define AS_MAX_PORTABILITY
+#endif
+
+
+
 // Embarcadero C++Builder
 #if defined(__BORLANDC__)
  #ifndef _Windows
@@ -483,7 +505,7 @@
 			#define AS_CALLEE_DESTROY_OBJ_BY_VAL
 			#define AS_LARGE_OBJS_PASSED_BY_REF
 			#define AS_LARGE_OBJ_MIN_SIZE 3
-			#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_CONSTRUCTOR | asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_ASSIGNMENT | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
+			#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_CONSTRUCTOR | asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_ASSIGNMENT | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY | asOBJ_APP_CLASS_MORE_CONSTRUCTORS)
 			#define COMPLEX_MASK (asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
 		#endif
 	#endif
@@ -503,12 +525,18 @@
 		#endif
 	#endif
 
+	#if defined(_M_ARM64)
+		#define AS_ARM64
+
+		// TODO: MORE HERE
+	#endif
+
 	#ifndef COMPLEX_MASK
 		#define COMPLEX_MASK (asOBJ_APP_ARRAY)
 	#endif
 
 	#ifndef COMPLEX_RETURN_MASK
-		#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_CONSTRUCTOR | asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_ASSIGNMENT | asOBJ_APP_ARRAY)
+		#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_CONSTRUCTOR | asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_ASSIGNMENT | asOBJ_APP_ARRAY | asOBJ_APP_CLASS_MORE_CONSTRUCTORS)
 	#endif
 
 	#define UNREACHABLE_RETURN
@@ -607,7 +635,8 @@
 
 // GNU C (and MinGW or Cygwin on Windows)
 // Use the following command to determine predefined macros: echo . | g++ -dM -E -
-#if (defined(__GNUC__) && !defined(__SNC__)) || defined(EPPC) || defined(__CYGWIN__) // JWC -- use this instead for Wii
+// MSVC2015 can now use CLang too, but it shouldn't go in here
+#if (defined(__GNUC__) && !defined(__SNC__) && !defined(_MSC_VER)) || defined(EPPC) || defined(__CYGWIN__) // JWC -- use this instead for Wii
 	#define GNU_STYLE_VIRTUAL_METHOD
 	#define MULTI_BASE_OFFSET(x) (*((asPWORD*)(&x)+1))
 	#define asVSNPRINTF(a, b, c, d) vsnprintf(a, b, c, d)
@@ -804,13 +833,12 @@
 
 			// As of version 4.7 MinGW changed the ABI, presumably
 			// to be better aligned with how MSVC works
-			// Urho3D: also check for Clang version and use the same workaround
 			#if (__GNUC__ == 4 && __GNUC_MINOR__ >= 7) || __GNUC__ > 4
 				#define AS_MINGW47
 			#endif
-
-			#if (__clang_major__ == 3 && __clang_minor__ > 4)
-			    #define AS_MINGW47
+		
+			#if (__clang_major__ == 3 && __clang_minor__ > 4) || __clang_major > 3
+				#define AS_MINGW47
 			#endif
 
 			#ifdef AS_MINGW47
@@ -842,6 +870,7 @@
 		#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
 
 		#if (defined(i386) || defined(__i386) || defined(__i386__)) && !defined(__LP64__)
+			// x86 32bit
 			#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 			#define CDECL_RETURN_SIMPLE_IN_MEMORY
 			#define STDCALL_RETURN_SIMPLE_IN_MEMORY
@@ -850,9 +879,8 @@
 			#define THISCALL_PASS_OBJECT_POINTER_ON_THE_STACK
 			#define AS_X86
 			#undef AS_NO_THISCALL_FUNCTOR_METHOD
-
-		// Urho3D - use __aarch64__ instead of __arm64__ because GCC only emits the former
-		#elif defined(__LP64__) && !defined(__aarch64__)
+		#elif defined(__x86_64__)
+			// x86 64bit
 			#define AS_X64_GCC
 			#undef AS_NO_THISCALL_FUNCTOR_METHOD
 			#define HAS_128_BIT_PRIMITIVES
@@ -862,60 +890,78 @@
 			// STDCALL is not available on 64bit Linux
 			#undef STDCALL
 			#define STDCALL
+		#elif defined(__ARMEL__) || defined(__arm__) || defined(__aarch64__) || defined(__AARCH64EL__)
+			// arm 
 
-		// Urho3D - Add support for aarch64-linux-gnu
-		#elif defined(__aarch64__)
-			// AngelScript currently doesn't support native calling
-			// for 64bit ARM processors so it's necessary to turn on
-			// portability mode
-			#define AS_MAX_PORTABILITY
-			// STDCALL is not available on ARM
-			#undef STDCALL
-			#define STDCALL
+			// The assembler code currently doesn't support arm v4
+			#if !defined(__ARM_ARCH_4__) && !defined(__ARM_ARCH_4T__) && !defined(__LP64__)
+				#define AS_ARM
 
-		#elif (defined(__ARMEL__) || defined(__arm__)) && !(defined(__ARM_ARCH_4__) || defined(__ARM_ARCH_4T__))
-			#define AS_ARM
+				// TODO: The stack unwind on exceptions currently fails due to the assembler code in as_callfunc_arm_gcc.S
+				#define AS_NO_EXCEPTIONS
 
-			// TODO: The stack unwind on exceptions currently fails due to the assembler code in as_callfunc_arm_gcc.S
-			#define AS_NO_EXCEPTIONS
+				#undef STDCALL
+				#define STDCALL
 
-			#undef STDCALL
-			#define STDCALL
+				#define CDECL_RETURN_SIMPLE_IN_MEMORY
+				#define STDCALL_RETURN_SIMPLE_IN_MEMORY
+				#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 
-			#define CDECL_RETURN_SIMPLE_IN_MEMORY
-			#define STDCALL_RETURN_SIMPLE_IN_MEMORY
-			#define THISCALL_RETURN_SIMPLE_IN_MEMORY
+				#undef THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
+				#undef CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
+				#undef STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
 
-			#undef THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
-			#undef CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
-			#undef STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
+				#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 2
+				#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 2
+				#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 2
 
-			#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 2
-			#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 2
-			#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 2
+				#ifndef AS_MAX_PORTABILITY
+				// Make a few checks against incompatible ABI combinations
+				#if defined(__FAST_MATH__) && __FAST_MATH__ == 1
+					#error -ffast-math is not supported with native calling conventions
+				#endif
+				#endif
 
-			#ifndef AS_MAX_PORTABILITY
-			// Make a few checks against incompatible ABI combinations
-			#if defined(__FAST_MATH__) && __FAST_MATH__ == 1
-				#error -ffast-math is not supported with native calling conventions
+				// Verify if soft-float or hard-float ABI is used
+				#if (defined(__SOFTFP__) && __SOFTFP__ == 1) || defined(__ARM_PCS)
+					// -ffloat-abi=softfp or -ffloat-abi=soft
+					#define AS_SOFTFP
+				#endif
+
+				// Tested with both hard float and soft float abi
+				#undef AS_NO_THISCALL_FUNCTOR_METHOD
+			#elif defined(__LP64__) || defined(__aarch64__)
+				#define AS_ARM64
+
+				#undef STDCALL
+				#define STDCALL
+
+				#undef GNU_STYLE_VIRTUAL_METHOD
+				#undef AS_NO_THISCALL_FUNCTOR_METHOD
+
+				#define HAS_128_BIT_PRIMITIVES
+
+				#define CDECL_RETURN_SIMPLE_IN_MEMORY
+				#define STDCALL_RETURN_SIMPLE_IN_MEMORY
+				#define THISCALL_RETURN_SIMPLE_IN_MEMORY
+
+				#undef THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
+				#undef CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
+				#undef STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
+
+				#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
+				#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE    5
+				#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE  5
 			#endif
-			#endif
-
-			// Verify if soft-float or hard-float ABI is used
-			#if defined(__SOFTFP__) && __SOFTFP__ == 1
-				// -ffloat-abi=softfp or -ffloat-abi=soft
-				#define AS_SOFTFP
-			#endif
-
-			// Tested with both hard float and soft float abi
-			#undef AS_NO_THISCALL_FUNCTOR_METHOD
 
 		#elif defined(__mips__)
+			// mips
 			#define AS_MIPS
 			#undef STDCALL
 			#define STDCALL
 
 			#ifdef _ABIO32
+				// 32bit O32 ABI
 				#define AS_MIPS
 
 				// All structures are returned in memory regardless of size or complexity
@@ -930,6 +976,24 @@
 				// For other ABIs the native calling convention is not available (yet)
 				#define AS_MAX_PORTABILITY
 			#endif
+		#elif defined(__PPC64__)
+			// PPC 64bit
+
+			// The code in as_callfunc_ppc_64.cpp was built for PS3 and XBox 360, that 
+			// although use 64bit PPC only uses 32bit pointers.
+			// TODO: Add support for native calling conventions on Linux with PPC 64bit
+			#define AS_MAX_PORTABILITY
+		#elif defined(__e2k__)
+			// 64bit MCST Elbrus 2000
+			// ref: https://en.wikipedia.org/wiki/Elbrus_2000
+			#define AS_E2K
+			// AngelScript currently doesn't support native calling
+			// for MCST Elbrus 2000 processor so it's necessary to turn on
+			// portability mode
+			#define AS_MAX_PORTABILITY
+			// STDCALL is not available on 64bit Linux
+			#undef STDCALL
+			#define STDCALL
 		#else
 			#define AS_MAX_PORTABILITY
 		#endif
@@ -951,7 +1015,7 @@
 			#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
 			#define THISCALL_PASS_OBJECT_POINTER_ON_THE_STACK
 			#define AS_X86
-		#elif defined(__LP64__)
+		#elif defined(__x86_64__)
 			#define AS_X64_GCC
 			#define HAS_128_BIT_PRIMITIVES
 			#define SPLIT_OBJS_BY_MEMBER_TYPES
@@ -1058,7 +1122,8 @@
 			#define THISCALL_PASS_OBJECT_POINTER_ON_THE_STACK
 			#define AS_X86
 			#undef AS_NO_THISCALL_FUNCTOR_METHOD
-// Urho3D - Add support for Android Intel x86_64 and Android ARM 64bit
+
+		// Urho3D: Add support for Android Intel x86_64 and Android ARM 64bit
 		#elif defined(__LP64__) && !defined(__aarch64__)
 			// Android Intel x86_64 (same config as Linux x86_64). Tested with Intel x86_64 Atom System Image.
 			#define AS_X64_GCC
@@ -1070,13 +1135,15 @@
 			// STDCALL is not available on 64bit Linux
 			#undef STDCALL
 			#define STDCALL
-        #elif defined(__aarch64__)
+		#elif defined(__aarch64__)
 			// Doesn't support native calling for Android ARM 64bit yet
 			#define AS_MAX_PORTABILITY
 			// STDCALL is not available on ARM
 			#undef STDCALL
 			#define STDCALL
-        #elif defined(__mips__)
+		// Urho3D: end
+
+		#elif defined(__mips__)
 			#define AS_MIPS
 			#undef STDCALL
 			#define STDCALL
@@ -1101,23 +1168,26 @@
 	// Haiku OS
 	#elif __HAIKU__
 		#define AS_HAIKU
-		// Only x86-32 is currently supported by Haiku, but they do plan to support
-		// x86-64 and PowerPC in the future, so should go ahead and check the platform
-		// for future compatibility
 		#if (defined(i386) || defined(__i386) || defined(__i386__)) && !defined(__LP64__)
 			#define AS_X86
 			#define THISCALL_PASS_OBJECT_POINTER_ON_THE_STACK
 			#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 			#define CDECL_RETURN_SIMPLE_IN_MEMORY
 			#define STDCALL_RETURN_SIMPLE_IN_MEMORY
+		#elif defined(__x86_64__)
+			#define AS_X64_GCC
+			#define HAS_128_BIT_PRIMITIVES
+			#define SPLIT_OBJS_BY_MEMBER_TYPES
+			#undef COMPLEX_MASK
+			#define COMPLEX_MASK (asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
+			#undef COMPLEX_RETURN_MASK
+			#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
+			#define AS_LARGE_OBJS_PASSED_BY_REF
+			#define AS_LARGE_OBJ_MIN_SIZE 5
+			#undef STDCALL
+			#define STDCALL
 		#else
 			#define AS_MAX_PORTABILITY
-		#endif
-
-		#define AS_POSIX_THREADS
-		#if !( ( (__GNUC__ == 4) && (__GNUC_MINOR__ >= 1) || __GNUC__ > 4) )
-			// Only with GCC 4.1 was the atomic instructions available
-			#define AS_NO_ATOMIC
 		#endif
 
 	// Illumos
@@ -1130,7 +1200,7 @@
 			// Support native calling conventions on Intel 32bit CPU
 			#define THISCALL_PASS_OBJECT_POINTER_ON_THE_STACK
 			#define AS_X86
-		#elif (defined(__x86_64__) || defined(__LP64__))
+		#elif defined(__x86_64__)
 			#define AS_X64_GCC
 			#define HAS_128_BIT_PRIMITIVES
 			#define SPLIT_OBJS_BY_MEMBER_TYPES
@@ -1190,29 +1260,26 @@
 // Detect target hardware
 //------------------------------------------------
 
-// X86, Intel, AMD, etc, i.e. most PCs
-#if defined(__i386__) || defined(_M_IX86)
-	// Nothing special here
+// Big endian CPU target?
+// see: http://sourceforge.net/p/predef/wiki/Endianness/
+#if !defined(AS_BIG_ENDIAN) && \
+	defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || \
+	defined(__BIG_ENDIAN__) || \
+	defined(__ARMEB__) || \
+	defined(__THUMBEB__) || \
+	defined(__AARCH64EB__) || \
+	defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
+		#define AS_BIG_ENDIAN
 #endif
 
-// PowerPC, e.g. Mac, GameCube, PS3, XBox 360, Wii
-#if defined(__PPC__) || defined(__ppc__) || defined(_PPC_) || defined(EPPC)
-	#define AS_BIG_ENDIAN
-
-	// Gamecube
-	#if defined(_GC)
-		#define AS_USE_DOUBLE_AS_FLOAT
-	#endif
-#endif
-
-// Dreamcast console
-#ifdef __SH4_SINGLE_ONLY__
+// Dreamcast and Gamecube use only 32bit floats, so treat doubles as floats
+#if defined(__SH4_SINGLE_ONLY__) || defined(_GC)
 	#define AS_USE_DOUBLE_AS_FLOAT	// use 32bit floats instead of doubles
 #endif
 
 // If there are no current support for native calling
 // conventions, then compile with AS_MAX_PORTABILITY
-#if (!defined(AS_X86) && !defined(AS_SH4) && !defined(AS_MIPS) && !defined(AS_PPC) && !defined(AS_PPC_64) && !defined(AS_XENON) && !defined(AS_X64_GCC) && !defined(AS_X64_MSVC) && !defined(AS_ARM) && !defined(AS_X64_MINGW))
+#if (!defined(AS_X86) && !defined(AS_SH4) && !defined(AS_MIPS) && !defined(AS_PPC) && !defined(AS_PPC_64) && !defined(AS_XENON) && !defined(AS_X64_GCC) && !defined(AS_X64_MSVC) && !defined(AS_ARM) && !defined(AS_ARM64) && !defined(AS_X64_MINGW))
 	#ifndef AS_MAX_PORTABILITY
 		#define AS_MAX_PORTABILITY
 	#endif
@@ -1233,8 +1300,13 @@
 
 
 // The assert macro
-// Urho3D - use __ANDROID__ define emitted by all Android compiler toolchains
+
+// Urho3D: commented out original
+//#if defined(ANDROID)
+
+// Urho3D: use __ANDROID__ define emitted by all Android compiler toolchains
 #if defined(ANDROID) || defined(__ANDROID__)
+
 	#if defined(AS_DEBUG)
 		#include <android/log.h>
 		#include <stdlib.h>

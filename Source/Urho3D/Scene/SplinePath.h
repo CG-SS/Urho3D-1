@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,21 +38,22 @@ namespace Urho3D
 /// Spline for creating smooth movement based on Speed along a set of Control Points modified by the Interpolation Mode.
 class URHO3D_API SplinePath : public Component
 {
-    URHO3D_OBJECT(SplinePath, Component)
+    URHO3D_OBJECT(SplinePath, Component);
 
 public:
     /// Construct an Empty SplinePath.
-    SplinePath(Context* context);
+    explicit SplinePath(Context* context);
 
     /// Destructor.
-    virtual ~SplinePath() { };
+    ~SplinePath() override = default;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Apply Attributes to the SplinePath.
-    virtual void ApplyAttributes();
+    void ApplyAttributes() override;
     /// Draw the Debug Geometry.
-    virtual void DrawDebugGeometry(DebugRenderer* debug, bool depthTest);
+    void DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override;
 
     /// Add a Node to the SplinePath as a Control Point.
     void AddControlPoint(Node* point, unsigned index = M_MAX_UNSIGNED);
@@ -62,29 +63,36 @@ public:
     void ClearControlPoints();
 
     /// Set the Interpolation Mode.
+    /// @property
     void SetInterpolationMode(InterpolationMode interpolationMode);
 
     /// Set the movement Speed.
+    /// @property
     void SetSpeed(float speed) { speed_ = speed; }
 
     /// Set the controlled Node's position on the SplinePath.
     void SetPosition(float factor);
     /// Set the Node to be moved along the SplinePath.
+    /// @property
     void SetControlledNode(Node* controlled);
 
     /// Get the Interpolation Mode.
+    /// @property
     InterpolationMode GetInterpolationMode() const { return spline_.GetInterpolationMode(); }
 
     /// Get the movement Speed.
+    /// @property
     float GetSpeed() const { return speed_; }
-    
-    /// Get the length of SplinePath;
+
+    /// Get the length of SplinePath.
+    /// @property
     float GetLength() const { return length_; }
 
     /// Get the parent Node's last position on the spline.
     Vector3 GetPosition() const { return GetPoint(traveled_); }
 
     /// Get the controlled Node.
+    /// @property
     Node* GetControlledNode() const { return controlledNode_; }
 
     /// Get a point on the SplinePath from 0.f to 1.f where 0 is the start and 1 is the end.
@@ -96,6 +104,7 @@ public:
     void Reset();
 
     /// Returns whether the movement along the SplinePath is complete.
+    /// @property{get_isFinished}
     bool IsFinished() const { return traveled_ >= 1.0f; }
 
     /// Set Control Point Node IDs attribute.
@@ -112,9 +121,9 @@ public:
 
 protected:
     /// Listener to manage Control Point movement.
-    virtual void OnMarkedDirty(Node* point);
+    void OnMarkedDirty(Node* point) override;
     /// Listener to manage Control Point enabling.
-    virtual void OnNodeSetEnabled(Node* point);
+    void OnNodeSetEnabled(Node* point) override;
 
 private:
     /// Update the Node IDs of the Control Points.

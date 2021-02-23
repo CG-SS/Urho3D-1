@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ class IndexBuffer;
 class VertexBuffer;
 
 /// One billboard in the billboard set.
+/// @fakeref
 struct URHO3D_API Billboard
 {
     /// Position.
@@ -64,73 +65,93 @@ class URHO3D_API BillboardSet : public Drawable
 
 public:
     /// Construct.
-    BillboardSet(Context* context);
+    explicit BillboardSet(Context* context);
     /// Destruct.
-    virtual ~BillboardSet();
+    ~BillboardSet() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Process octree raycast. May be called from a worker thread.
-    virtual void ProcessRayQuery(const RayOctreeQuery& query, PODVector<RayQueryResult>& results);
+    void ProcessRayQuery(const RayOctreeQuery& query, PODVector<RayQueryResult>& results) override;
     /// Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.
-    virtual void UpdateBatches(const FrameInfo& frame);
-    /// Prepare geometry for rendering. Called from a worker thread if possible (no GPU update.)
-    virtual void UpdateGeometry(const FrameInfo& frame);
+    void UpdateBatches(const FrameInfo& frame) override;
+    /// Prepare geometry for rendering. Called from a worker thread if possible (no GPU update).
+    void UpdateGeometry(const FrameInfo& frame) override;
     /// Return whether a geometry update is necessary, and if it can happen in a worker thread.
-    virtual UpdateGeometryType GetUpdateGeometryType();
+    UpdateGeometryType GetUpdateGeometryType() override;
 
     /// Set material.
+    /// @property
     void SetMaterial(Material* material);
     /// Set number of billboards.
+    /// @property
     void SetNumBillboards(unsigned num);
     /// Set whether billboards are relative to the scene node. Default true.
+    /// @property
     void SetRelative(bool enable);
     /// Set whether scene node scale affects billboards' size. Default true.
+    /// @property
     void SetScaled(bool enable);
     /// Set whether billboards are sorted by distance. Default false.
+    /// @property
     void SetSorted(bool enable);
     /// Set whether billboards have fixed size on screen (measured in pixels) regardless of distance to camera. Default false.
+    /// @property
     void SetFixedScreenSize(bool enable);
-    /// Set how the billboards should rotate in relation to the camera. Default is to follow camera rotation on all axes (FC_ROTATE_XYZ.)
+    /// Set how the billboards should rotate in relation to the camera. Default is to follow camera rotation on all axes (FC_ROTATE_XYZ).
+    /// @property
     void SetFaceCameraMode(FaceCameraMode mode);
     /// Set minimal angle between billboard normal and look-at direction.
+    /// @property
     void SetMinAngle(float angle);
     /// Set animation LOD bias.
+    /// @property
     void SetAnimationLodBias(float bias);
     /// Mark for bounding box and vertex buffer update. Call after modifying the billboards.
     void Commit();
 
     /// Return material.
+    /// @property
     Material* GetMaterial() const;
 
     /// Return number of billboards.
+    /// @property
     unsigned GetNumBillboards() const { return billboards_.Size(); }
 
     /// Return all billboards.
     PODVector<Billboard>& GetBillboards() { return billboards_; }
 
     /// Return billboard by index.
+    /// @property{get_billboards}
     Billboard* GetBillboard(unsigned index);
 
     /// Return whether billboards are relative to the scene node.
+    /// @property
     bool IsRelative() const { return relative_; }
 
     /// Return whether scene node scale affects billboards' size.
+    /// @property
     bool IsScaled() const { return scaled_; }
 
     /// Return whether billboards are sorted.
+    /// @property
     bool IsSorted() const { return sorted_; }
 
     /// Return whether billboards are fixed screen size.
+    /// @property
     bool IsFixedScreenSize() const { return fixedScreenSize_; }
 
     /// Return how the billboards rotate in relation to the camera.
+    /// @property
     FaceCameraMode GetFaceCameraMode() const { return faceCameraMode_; }
 
     /// Return minimal angle between billboard normal and look-at direction.
+    /// @property
     float GetMinAngle() const { return minAngle_; }
 
     /// Return animation LOD bias.
+    /// @property
     float GetAnimationLodBias() const { return animationLodBias_; }
 
     /// Set material attribute.
@@ -148,7 +169,7 @@ public:
 
 protected:
     /// Recalculate the world-space bounding box.
-    virtual void OnWorldBoundingBoxUpdate();
+    void OnWorldBoundingBoxUpdate() override;
     /// Mark billboard vertex buffer to need an update.
     void MarkPositionsDirty();
 
@@ -191,9 +212,9 @@ private:
     bool bufferSizeDirty_;
     /// Vertex buffer needs rewrite flag.
     bool bufferDirty_;
-    /// Force update flag (ignore animation LOD momentarily.)
+    /// Force update flag (ignore animation LOD momentarily).
     bool forceUpdate_;
-    /// Update billboard geometry type
+    /// Update billboard geometry type.
     bool geometryTypeUpdate_;
     /// Sorting flag. Triggers a vertex buffer rewrite for each view this billboard set is rendered from.
     bool sortThisFrame_;

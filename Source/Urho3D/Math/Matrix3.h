@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ class URHO3D_API Matrix3
 {
 public:
     /// Construct an identity matrix.
-    Matrix3() :
+    Matrix3() noexcept :
         m00_(1.0f),
         m01_(0.0f),
         m02_(0.0f),
@@ -46,23 +46,12 @@ public:
     }
 
     /// Copy-construct from another matrix.
-    Matrix3(const Matrix3& matrix) :
-        m00_(matrix.m00_),
-        m01_(matrix.m01_),
-        m02_(matrix.m02_),
-        m10_(matrix.m10_),
-        m11_(matrix.m11_),
-        m12_(matrix.m12_),
-        m20_(matrix.m20_),
-        m21_(matrix.m21_),
-        m22_(matrix.m22_)
-    {
-    }
+    Matrix3(const Matrix3& matrix) noexcept = default;
 
     /// Construct from values.
     Matrix3(float v00, float v01, float v02,
             float v10, float v11, float v12,
-            float v20, float v21, float v22) :
+            float v20, float v21, float v22) noexcept :
         m00_(v00),
         m01_(v01),
         m02_(v02),
@@ -76,7 +65,7 @@ public:
     }
 
     /// Construct from a float array.
-    explicit Matrix3(const float* data) :
+    explicit Matrix3(const float* data) noexcept :
         m00_(data[0]),
         m01_(data[1]),
         m02_(data[2]),
@@ -90,19 +79,7 @@ public:
     }
 
     /// Assign from another matrix.
-    Matrix3& operator =(const Matrix3& rhs)
-    {
-        m00_ = rhs.m00_;
-        m01_ = rhs.m01_;
-        m02_ = rhs.m02_;
-        m10_ = rhs.m10_;
-        m11_ = rhs.m11_;
-        m12_ = rhs.m12_;
-        m20_ = rhs.m20_;
-        m21_ = rhs.m21_;
-        m22_ = rhs.m22_;
-        return *this;
-    }
+    Matrix3& operator =(const Matrix3& rhs) noexcept = default;
 
     /// Test for equality with another matrix without epsilon.
     bool operator ==(const Matrix3& rhs) const
@@ -293,6 +270,30 @@ public:
 
     /// Return matrix column.
     Vector3 Column(unsigned j) const { return Vector3(Element(0, j), Element(1, j), Element(2, j)); }
+
+    /// Return whether any element is NaN.
+    bool IsNaN() const
+    {
+        const float* data = Data();
+        for (unsigned i = 0; i < 9; ++i)
+        {
+            if (Urho3D::IsNaN(data[i]))
+                return true;
+        }
+        return false;
+    }
+
+    /// Return whether any element is Inf.
+    bool IsInf() const
+    {
+        const float* data = Data();
+        for (unsigned i = 0; i < 9; ++i)
+        {
+            if (Urho3D::IsInf(data[i]))
+                return true;
+        }
+        return false;
+    }
 
     /// Return as string.
     String ToString() const;

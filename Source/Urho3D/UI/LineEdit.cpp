@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +42,7 @@ extern const char* UI_CATEGORY;
 
 LineEdit::LineEdit(Context* context) :
     BorderImage(context),
-    lastFont_(0),
+    lastFont_(nullptr),
     lastFontSize_(0),
     cursorPosition_(0),
     dragBeginCursor_(M_MAX_UNSIGNED),
@@ -69,9 +69,7 @@ LineEdit::LineEdit(Context* context) :
     SubscribeToEvent(this, E_LAYOUTUPDATED, URHO3D_HANDLER(LineEdit, HandleLayoutUpdated));
 }
 
-LineEdit::~LineEdit()
-{
-}
+LineEdit::~LineEdit() = default;
 
 void LineEdit::RegisterObject(Context* context)
 {
@@ -117,7 +115,7 @@ void LineEdit::Update(float timeStep)
     cursor_->SetVisible(cursorVisible);
 }
 
-void LineEdit::OnClickBegin(const IntVector2& position, const IntVector2& screenPosition, int button, int buttons, int qualifiers,
+void LineEdit::OnClickBegin(const IntVector2& position, const IntVector2& screenPosition, MouseButton button, MouseButtonFlags buttons, QualifierFlags qualifiers,
     Cursor* cursor)
 {
     if (button == MOUSEB_LEFT && cursorMovable_)
@@ -131,14 +129,14 @@ void LineEdit::OnClickBegin(const IntVector2& position, const IntVector2& screen
     }
 }
 
-void LineEdit::OnDoubleClick(const IntVector2& position, const IntVector2& screenPosition, int button, int buttons, int qualifiers,
+void LineEdit::OnDoubleClick(const IntVector2& position, const IntVector2& screenPosition, MouseButton button, MouseButtonFlags buttons, QualifierFlags qualifiers,
     Cursor* cursor)
 {
     if (button == MOUSEB_LEFT)
         text_->SetSelection(0);
 }
 
-void LineEdit::OnDragBegin(const IntVector2& position, const IntVector2& screenPosition, int buttons, int qualifiers,
+void LineEdit::OnDragBegin(const IntVector2& position, const IntVector2& screenPosition, MouseButtonFlags buttons, QualifierFlags qualifiers,
     Cursor* cursor)
 {
     UIElement::OnDragBegin(position, screenPosition, buttons, qualifiers, cursor);
@@ -146,8 +144,8 @@ void LineEdit::OnDragBegin(const IntVector2& position, const IntVector2& screenP
     dragBeginCursor_ = GetCharIndex(position);
 }
 
-void LineEdit::OnDragMove(const IntVector2& position, const IntVector2& screenPosition, const IntVector2& deltaPos, int buttons,
-    int qualifiers, Cursor* cursor)
+void LineEdit::OnDragMove(const IntVector2& position, const IntVector2& screenPosition, const IntVector2& deltaPos, MouseButtonFlags buttons,
+    QualifierFlags qualifiers, Cursor* cursor)
 {
     if (cursorMovable_ && textSelectable_)
     {
@@ -191,13 +189,13 @@ bool LineEdit::OnDragDropFinish(UIElement* source)
         StringHash sourceType = source->GetType();
         if (sourceType == LineEdit::GetTypeStatic())
         {
-            LineEdit* sourceLineEdit = static_cast<LineEdit*>(source);
+            auto* sourceLineEdit = static_cast<LineEdit*>(source);
             SetText(sourceLineEdit->GetText());
             return true;
         }
         else if (sourceType == Text::GetTypeStatic())
         {
-            Text* sourceText = static_cast<Text*>(source);
+            auto* sourceText = static_cast<Text*>(source);
             SetText(sourceText->GetText());
             return true;
         }
@@ -206,7 +204,7 @@ bool LineEdit::OnDragDropFinish(UIElement* source)
     return false;
 }
 
-void LineEdit::OnKey(int key, int buttons, int qualifiers)
+void LineEdit::OnKey(Key key, MouseButtonFlags buttons, QualifierFlags qualifiers)
 {
     bool changed = false;
     bool cursorMoved = false;
@@ -365,8 +363,8 @@ void LineEdit::OnKey(int key, int buttons, int qualifiers)
             VariantMap& eventData = GetEventDataMap();
             eventData[P_ELEMENT] = this;
             eventData[P_KEY] = key;
-            eventData[P_BUTTONS] = buttons;
-            eventData[P_QUALIFIERS] = qualifiers;
+            eventData[P_BUTTONS] = (unsigned)buttons;
+            eventData[P_QUALIFIERS] = (unsigned)qualifiers;
             SendEvent(E_UNHANDLEDKEY, eventData);
         }
         return;
@@ -568,8 +566,17 @@ void LineEdit::UpdateText()
 {
     unsigned utf8Length = line_.LengthUTF8();
 
+    // If maxLength_ nonzero, truncate line to enforce length
+    if (maxLength_ && utf8Length > maxLength_)
+    {
+        line_ = line_.SubstringUTF8(0, maxLength_);
+        utf8Length = maxLength_;
+    }
+
     if (!echoCharacter_)
+    {
         text_->SetText(line_);
+    }
     else
     {
         String echoText;
@@ -577,6 +584,7 @@ void LineEdit::UpdateText()
             echoText.AppendUTF8(echoCharacter_);
         text_->SetText(echoText);
     }
+
     if (cursorPosition_ > utf8Length)
     {
         cursorPosition_ = utf8Length;

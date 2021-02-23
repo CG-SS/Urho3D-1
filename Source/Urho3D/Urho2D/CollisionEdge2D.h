@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,28 +34,33 @@ class URHO3D_API CollisionEdge2D : public CollisionShape2D
 
 public:
     /// Construct.
-    CollisionEdge2D(Context* context);
+    explicit CollisionEdge2D(Context* context);
     /// Destruct.
-    virtual ~CollisionEdge2D();
+    ~CollisionEdge2D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Set vertex 1.
+    /// @property
     void SetVertex1(const Vector2& vertex);
     /// Set vertex 2.
+    /// @property
     void SetVertex2(const Vector2& vertex);
     /// Set vertices.
     void SetVertices(const Vector2& vertex1, const Vector2& vertex2);
 
     /// Return vertex 1.
+    /// @property
     const Vector2& GetVertex1() const { return vertex1_; }
 
     /// Return vertex 2.
+    /// @property
     const Vector2& GetVertex2() const { return vertex2_; }
 
 private:
     /// Apply node world scale.
-    virtual void ApplyNodeWorldScale();
+    void ApplyNodeWorldScale() override;
     /// Recreate fixture.
     void RecreateFixture();
 

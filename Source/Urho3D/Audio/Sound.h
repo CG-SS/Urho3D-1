@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,14 +37,15 @@ class URHO3D_API Sound : public ResourceWithMetadata
 
 public:
     /// Construct.
-    Sound(Context* context);
+    explicit Sound(Context* context);
     /// Destruct and free sound data.
-    virtual ~Sound();
+    ~Sound() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
-    virtual bool BeginLoad(Deserializer& source);
+    bool BeginLoad(Deserializer& source) override;
 
     /// Load raw sound data.
     bool LoadRaw(Deserializer& source);
@@ -59,6 +60,7 @@ public:
     /// Set uncompressed sound data format.
     void SetFormat(unsigned frequency, bool sixteenBit, bool stereo);
     /// Set loop on/off. If loop is enabled, sets the full sound as loop range.
+    /// @property
     void SetLooped(bool enable);
     /// Define loop.
     void SetLoop(unsigned repeatOffset, unsigned endOffset);
@@ -79,33 +81,40 @@ public:
     signed char* GetEnd() const { return end_; }
 
     /// Return length in seconds.
+    /// @property
     float GetLength() const;
 
     /// Return total sound data size.
     unsigned GetDataSize() const { return dataSize_; }
 
     /// Return sample size.
+    /// @property
     unsigned GetSampleSize() const;
 
     /// Return default frequency as a float.
+    /// @property
     float GetFrequency() const { return (float)frequency_; }
 
     /// Return default frequency as an integer.
     unsigned GetIntFrequency() const { return frequency_; }
 
     /// Return whether is looped.
+    /// @property
     bool IsLooped() const { return looped_; }
 
     /// Return whether data is sixteen bit.
+    /// @property
     bool IsSixteenBit() const { return sixteenBit_; }
 
     /// Return whether data is stereo.
+    /// @property
     bool IsStereo() const { return stereo_; }
 
     /// Return whether is compressed.
+    /// @property
     bool IsCompressed() const { return compressed_; }
 
-    /// Fix interpolation by copying data from loop start to loop end (looped), or adding silence (oneshot.) Called internally, does not normally need to be called, unless the sound data is modified manually on the fly.
+    /// Fix interpolation by copying data from loop start to loop end (looped), or adding silence (oneshot). Called internally, does not normally need to be called, unless the sound data is modified manually on the fly.
     void FixInterpolation();
 
 private:

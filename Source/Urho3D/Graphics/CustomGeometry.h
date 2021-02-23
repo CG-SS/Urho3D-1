@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ namespace Urho3D
 {
 
 /// Custom geometry vertex.
+/// @fakeref
 struct CustomGeometryVertex
 {
     /// Position.
@@ -51,26 +52,29 @@ class URHO3D_API CustomGeometry : public Drawable
 
 public:
     /// Construct.
-    CustomGeometry(Context* context);
+    explicit CustomGeometry(Context* context);
     /// Destruct.
-    virtual ~CustomGeometry();
+    ~CustomGeometry() override;
     /// Register object factory. Drawable must be registered first.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Process octree raycast. May be called from a worker thread.
-    virtual void ProcessRayQuery(const RayOctreeQuery& query, PODVector<RayQueryResult>& results);
+    void ProcessRayQuery(const RayOctreeQuery& query, PODVector<RayQueryResult>& results) override;
     /// Return the geometry for a specific LOD level.
-    virtual Geometry* GetLodGeometry(unsigned batchIndex, unsigned level);
+    Geometry* GetLodGeometry(unsigned batchIndex, unsigned level) override;
     /// Return number of occlusion geometry triangles.
-    virtual unsigned GetNumOccluderTriangles();
+    unsigned GetNumOccluderTriangles() override;
     /// Draw to occlusion buffer. Return true if did not run out of triangles.
-    virtual bool DrawOcclusion(OcclusionBuffer* buffer);
+    bool DrawOcclusion(OcclusionBuffer* buffer) override;
 
     /// Clear all geometries.
     void Clear();
     /// Set number of geometries.
+    /// @property
     void SetNumGeometries(unsigned num);
     /// Set vertex buffer dynamic mode. A dynamic buffer should be faster to update frequently. Effective at the next Commit() call.
+    /// @property
     void SetDynamic(bool enable);
     /// Begin defining a geometry. Clears existing vertices in that index.
     void BeginGeometry(unsigned index, PrimitiveType type);
@@ -91,20 +95,26 @@ public:
     /// Update vertex buffer and calculate the bounding box. Call after finishing defining geometry.
     void Commit();
     /// Set material on all geometries.
+    /// @property
     void SetMaterial(Material* material);
     /// Set material on one geometry. Return true if successful.
+    /// @property{set_materials}
     bool SetMaterial(unsigned index, Material* material);
 
     /// Return number of geometries.
+    /// @property
     unsigned GetNumGeometries() const { return geometries_.Size(); }
 
     /// Return number of vertices in a geometry.
+    /// @property
     unsigned GetNumVertices(unsigned index) const;
 
     /// Return whether vertex buffer dynamic mode is enabled.
+    /// @property
     bool IsDynamic() const { return dynamic_; }
 
     /// Return material by geometry index.
+    /// @property{get_materials}
     Material* GetMaterial(unsigned index = 0) const;
 
     /// Return all vertices. These can be edited; calling Commit() updates the vertex buffer.
@@ -124,7 +134,7 @@ public:
 
 protected:
     /// Recalculate the world-space bounding box.
-    virtual void OnWorldBoundingBoxUpdate();
+    void OnWorldBoundingBoxUpdate() override;
 
 private:
     /// Primitive type per geometry.
@@ -136,7 +146,7 @@ private:
     /// Vertex buffer.
     SharedPtr<VertexBuffer> vertexBuffer_;
     /// Element mask used so far.
-    unsigned elementMask_;
+    VertexMaskFlags elementMask_;
     /// Current geometry being updated.
     unsigned geometryIndex_;
     /// Material list attribute.

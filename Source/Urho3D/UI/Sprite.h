@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,69 +35,84 @@ class URHO3D_API Sprite : public UIElement
 
 public:
     /// Construct.
-    Sprite(Context* context);
+    explicit Sprite(Context* context);
     /// Destruct.
-    virtual ~Sprite();
+    ~Sprite() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Return whether is visible and inside a scissor rectangle and should be rendered.
-    virtual bool IsWithinScissor(const IntRect& currentScissor);
+    bool IsWithinScissor(const IntRect& currentScissor) override;
     /// Update and return screen position.
-    virtual const IntVector2& GetScreenPosition() const;
+    const IntVector2& GetScreenPosition() const override;
     /// Return UI rendering batches.
-    virtual void GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor);
+    void GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor) override;
     /// React to position change.
-    virtual void OnPositionSet(const IntVector2& newPosition);
+    void OnPositionSet(const IntVector2& newPosition) override;
     /// Convert screen coordinates to element coordinates.
-    virtual IntVector2 ScreenToElement(const IntVector2& screenPosition);
+    IntVector2 ScreenToElement(const IntVector2& screenPosition) override;
     /// Convert element coordinates to screen coordinates.
-    virtual IntVector2 ElementToScreen(const IntVector2& position);
+    IntVector2 ElementToScreen(const IntVector2& position) override;
 
     /// Set floating point position.
+    /// @property
     void SetPosition(const Vector2& position);
     /// Set floating point position.
     void SetPosition(float x, float y);
     /// Set hotspot for positioning and rotation.
+    /// @property
     void SetHotSpot(const IntVector2& hotSpot);
     /// Set hotspot for positioning and rotation.
     void SetHotSpot(int x, int y);
     /// Set scale. Scale also affects child sprites.
+    /// @property
     void SetScale(const Vector2& scale);
     /// Set scale. Scale also affects child sprites.
     void SetScale(float x, float y);
     /// Set uniform scale. Scale also affects child sprites.
     void SetScale(float scale);
     /// Set rotation angle.
+    /// @property
     void SetRotation(float angle);
     /// Set texture.
+    /// @property
     void SetTexture(Texture* texture);
     /// Set part of texture to use as the image.
+    /// @property
     void SetImageRect(const IntRect& rect);
     /// Use whole texture as the image.
     void SetFullImageRect();
     /// Set blend mode.
+    /// @property
     void SetBlendMode(BlendMode mode);
 
     /// Return floating point position.
+    /// @property
     const Vector2& GetPosition() const { return floatPosition_; }
 
     /// Return hotspot.
+    /// @property
     const IntVector2& GetHotSpot() const { return hotSpot_; }
 
     /// Return scale.
+    /// @property
     const Vector2& GetScale() const { return scale_; }
 
     /// Return rotation angle.
+    /// @property
     float GetRotation() const { return rotation_; }
 
     /// Return texture.
+    /// @property
     Texture* GetTexture() const { return texture_; }
 
     /// Return image rectangle.
+    /// @property
     const IntRect& GetImageRect() const { return imageRect_; }
 
     /// Return blend mode.
+    /// @property
     BlendMode GetBlendMode() const { return blendMode_; }
 
     /// Set texture attribute.

@@ -18,10 +18,10 @@ void VS(float4 iPos : POSITION,
     #ifdef VERTEXCOLOR
         float4 iColor : COLOR0,
     #endif
-    #if defined(LIGHTMAP) || defined(AO)
+    #if defined(LIGHTMAP)
         float2 iTexCoord2 : TEXCOORD1,
     #endif
-    #if (defined(NORMALMAP)|| defined(IBL) || defined(TRAILFACECAM) || defined(TRAILBONE)) && !defined(BILLBOARD) && !defined(DIRBILLBOARD)
+    #if (defined(NORMALMAP) || defined(TRAILFACECAM) || defined(TRAILBONE)) && !defined(BILLBOARD) && !defined(DIRBILLBOARD)
         float4 iTangent : TANGENT,
     #endif
     #ifdef SKINNED
@@ -34,11 +34,11 @@ void VS(float4 iPos : POSITION,
     #if defined(BILLBOARD) || defined(DIRBILLBOARD)
         float2 iSize : TEXCOORD1,
     #endif
-    #if defined(NORMALMAP) || defined(IBL)
+    #ifndef NORMALMAP
+        out float2 oTexCoord : TEXCOORD0,
+    #else
         out float4 oTexCoord : TEXCOORD0,
         out float4 oTangent : TEXCOORD3,
-    #else
-        out float2 oTexCoord : TEXCOORD0,
     #endif
     out float3 oNormal : TEXCOORD1,
     out float4 oWorldPos : TEXCOORD2,
@@ -58,7 +58,7 @@ void VS(float4 iPos : POSITION,
         #ifdef ENVCUBEMAP
             out float3 oReflectionVec : TEXCOORD6,
         #endif
-        #if defined(LIGHTMAP) || defined(AO)
+        #if defined(LIGHTMAP)
             out float2 oTexCoord2 : TEXCOORD7,
         #endif
     #endif
@@ -89,7 +89,7 @@ void VS(float4 iPos : POSITION,
         oColor = iColor;
     #endif
 
-    #if defined(NORMALMAP) || defined(IBL)
+    #if defined(NORMALMAP)
         const float4 tangent = GetWorldTangent(modelMatrix);
         const float3 bitangent = cross(tangent.xyz, oNormal) * tangent.w;
         oTexCoord = float4(GetTexCoord(iTexCoord), bitangent.xy);
@@ -117,11 +117,13 @@ void VS(float4 iPos : POSITION,
         #endif
     #else
         // Ambient & per-vertex lighting
-        #if defined(LIGHTMAP) || defined(AO)
+        #if defined(LIGHTMAP)
             // If using lightmap, disregard zone ambient light
-            // If using AO, calculate ambient in the PS
             oVertexLight = float3(0.0, 0.0, 0.0);
             oTexCoord2 = iTexCoord2;
+        #elif defined(AO)
+            // If using AO, calculate ambient in the PS
+            oVertexLight = float3(0.0, 0.0, 0.0);
         #else
             oVertexLight = GetAmbient(GetZonePos(worldPos));
         #endif
@@ -140,11 +142,11 @@ void VS(float4 iPos : POSITION,
 }
 
 void PS(
-    #if defined(NORMALMAP) || defined(IBL)
+    #ifndef NORMALMAP
+        float2 iTexCoord : TEXCOORD0,
+    #else
         float4 iTexCoord : TEXCOORD0,
         float4 iTangent : TEXCOORD3,
-    #else
-        float2 iTexCoord : TEXCOORD0,
     #endif
     float3 iNormal : TEXCOORD1,
     float4 iWorldPos : TEXCOORD2,
@@ -164,7 +166,7 @@ void PS(
         #ifdef ENVCUBEMAP
             float3 iReflectionVec : TEXCOORD6,
         #endif
-        #if defined(LIGHTMAP) || defined(AO)
+        #if defined(LIGHTMAP)
             float2 iTexCoord2 : TEXCOORD7,
         #endif
     #endif
@@ -222,11 +224,10 @@ void PS(
     metalness = clamp(metalness, METALNESS_FLOOR, 1.0);
 
     float3 specColor = lerp(0.08 * cMatSpecColor.rgb, diffColor.rgb, metalness);
-    specColor *= cMatSpecColor.rgb;
     diffColor.rgb = diffColor.rgb - diffColor.rgb * metalness; // Modulate down the diffuse
 
     // Get normal
-    #if defined(NORMALMAP) || defined(IBL)
+    #if defined(NORMALMAP)
         const float3 tangent = normalize(iTangent.xyz);
         const float3 bitangent = normalize(float3(iTexCoord.zw, iTangent.w));
         const float3x3 tbn = float3x3(tangent, bitangent, iNormal);
@@ -302,9 +303,11 @@ void PS(
     #else
         // Ambient & per-vertex lighting
         float3 finalColor = iVertexLight * diffColor.rgb;
+        float3 ambientOcclusion = float3(1.0, 1.0, 1.0);
         #ifdef AO
             // If using AO, the vertex light ambient is black, calculate occluded ambient here
-            finalColor += Sample2D(EmissiveMap, iTexCoord2).rgb * cAmbientColor.rgb * diffColor.rgb;
+            ambientOcclusion = Sample2D(EmissiveMap, iTexCoord.xy).rgb;
+            finalColor += ambientOcclusion * cAmbientColor.rgb * diffColor.rgb;
         #endif
 
         #ifdef MATERIAL
@@ -322,9 +325,8 @@ void PS(
         float3 cubeColor = iVertexLight.rgb;
 
         #ifdef IBL
-            const float3 iblColor = ImageBasedLighting(reflection, tangent, bitangent, normal, toCamera, diffColor, specColor, roughness, cubeColor);
-            const float gamma = 0;
-            finalColor += iblColor;
+            const float3 iblColor = ImageBasedLighting(reflection, normal, toCamera, diffColor, specColor, roughness, cubeColor);
+            finalColor += iblColor * ambientOcclusion;
         #endif
 
         #ifdef ENVCUBEMAP

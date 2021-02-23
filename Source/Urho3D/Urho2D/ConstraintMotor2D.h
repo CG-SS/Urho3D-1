@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,41 +34,52 @@ class URHO3D_API ConstraintMotor2D : public Constraint2D
 
 public:
     /// Construct.
-    ConstraintMotor2D(Context* context);
+    explicit ConstraintMotor2D(Context* context);
     /// Destruct.
-    virtual ~ConstraintMotor2D();
+    ~ConstraintMotor2D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Set linear offset.
+    /// @property
     void SetLinearOffset(const Vector2& linearOffset);
     /// Set angular offset.
+    /// @property
     void SetAngularOffset(float angularOffset);
     /// Set max force.
+    /// @property
     void SetMaxForce(float maxForce);
     /// Set max torque.
+    /// @property
     void SetMaxTorque(float maxTorque);
     /// Set correction factor.
+    /// @property
     void SetCorrectionFactor(float correctionFactor);
 
     /// Return linear offset.
+    /// @property
     const Vector2& GetLinearOffset() const { return linearOffset_; }
 
     /// Return angular offset.
+    /// @property
     float GetAngularOffset() const { return jointDef_.angularOffset; }
 
     /// Return max force.
+    /// @property
     float GetMaxForce() const { return jointDef_.maxForce; }
 
     /// Return max torque.
+    /// @property
     float GetMaxTorque() const { return jointDef_.maxTorque; }
 
     /// Return correction factor.
+    /// @property
     float GetCorrectionFactor() const { return jointDef_.correctionFactor; }
 
 private:
     /// Return joint def.
-    virtual b2JointDef* GetJointDef();
+    b2JointDef* GetJointDef() override;
 
     /// Box2D joint def.
     b2MotorJointDef jointDef_;

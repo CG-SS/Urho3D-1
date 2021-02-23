@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
 namespace Urho3D
 {
 
-class Drawable2D; 
+class Drawable2D;
 class Renderer2D;
 class Texture2D;
 class VertexBuffer;
@@ -72,24 +72,29 @@ class URHO3D_API Drawable2D : public Drawable
 
 public:
     /// Construct.
-    Drawable2D(Context* context);
+    explicit Drawable2D(Context* context);
     /// Destruct.
-    ~Drawable2D();
+    ~Drawable2D() override;
     /// Register object factory. Drawable must be registered first.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Handle enabled/disabled state change.
-    virtual void OnSetEnabled();
+    void OnSetEnabled() override;
 
     /// Set layer.
+    /// @property
     void SetLayer(int layer);
     /// Set order in layer.
+    /// @property
     void SetOrderInLayer(int orderInLayer);
 
     /// Return layer.
+    /// @property
     int GetLayer() const { return layer_; }
 
     /// Return order in layer.
+    /// @property
     int GetOrderInLayer() const { return orderInLayer_; }
 
     /// Return all source batches (called by Renderer2D).
@@ -97,16 +102,16 @@ public:
 
 protected:
     /// Handle scene being assigned.
-    virtual void OnSceneSet(Scene* scene);
+    void OnSceneSet(Scene* scene) override;
     /// Handle node transform being dirtied.
-    virtual void OnMarkedDirty(Node* node);
+    void OnMarkedDirty(Node* node) override;
     /// Handle draw order changed.
     virtual void OnDrawOrderChanged() = 0;
     /// Update source batches.
     virtual void UpdateSourceBatches() = 0;
 
     /// Return draw order by layer and order in layer.
-    int GetDrawOrder() const { return (layer_ << 20) + (orderInLayer_ << 10); }
+    int GetDrawOrder() const { return layer_ << 16u | orderInLayer_; }
 
     /// Layer.
     int layer_;

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,49 +33,57 @@ class DynamicNavigationMesh;
 /// Obstacle for dynamic navigation mesh.
 class URHO3D_API Obstacle : public Component
 {
-    URHO3D_OBJECT(Obstacle, Component)
+    URHO3D_OBJECT(Obstacle, Component);
 
     friend class DynamicNavigationMesh;
 
 public:
     /// Construct.
-    Obstacle(Context*);
+    explicit Obstacle(Context* context);
     /// Destruct.
-    virtual ~Obstacle();
+    ~Obstacle() override;
 
     /// Register Obstacle with engine context.
-    static void RegisterObject(Context*);
+    /// @nobind
+    static void RegisterObject(Context* context);
 
     /// Update the owning mesh when enabled status has changed.
-    virtual void OnSetEnabled();
+    void OnSetEnabled() override;
 
     /// Get the height of this obstacle.
+    /// @property
     float GetHeight() const { return height_; }
 
     /// Set the height of this obstacle.
-    void SetHeight(float);
+    /// @property
+    void SetHeight(float newHeight);
 
     /// Get the blocking radius of this obstacle.
+    /// @property
     float GetRadius() const { return radius_; }
 
     /// Set the blocking radius of this obstacle.
-    void SetRadius(float);
+    /// @property
+    void SetRadius(float newRadius);
 
     /// Get the internal obstacle ID.
+    /// @property{get_obstacleId}
     unsigned GetObstacleID() const { return obstacleId_; }
 
     /// Render debug information.
-    virtual void DrawDebugGeometry(DebugRenderer*, bool depthTest);
+    void DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override;
     /// Simplified rendering of debug information for script usage.
     void DrawDebugGeometry(bool depthTest);
 
 protected:
     /// Handle node being assigned.
-    virtual void OnNodeSet(Node* node);
+    void OnNodeSet(Node* node) override;
     /// Handle scene being assigned, identify our DynamicNavigationMesh.
-    virtual void OnSceneSet(Scene* scene);
+    void OnSceneSet(Scene* scene) override;
     /// Handle node transform being dirtied.
-    virtual void OnMarkedDirty(Node* node);
+    void OnMarkedDirty(Node* node) override;
+    /// Handle navigation mesh tile added.
+    void HandleNavigationTileAdded(StringHash eventType, VariantMap& eventData);
 
 private:
     /// Radius of this obstacle.

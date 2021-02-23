@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+/// \file
 
 #pragma once
 
@@ -50,18 +52,14 @@ public:
     /// Default constructor.
     Spline();
     /// Constructor setting interpolation mode.
-    Spline(InterpolationMode mode);
+    explicit Spline(InterpolationMode mode);
     /// Constructor setting knots and interpolation mode.
-    Spline(const Vector<Variant>& knots, InterpolationMode mode = BEZIER_CURVE);
+    explicit Spline(const Vector<Variant>& knots, InterpolationMode mode = BEZIER_CURVE);
     /// Copy constructor.
-    Spline(const Spline& rhs);
+    Spline(const Spline& rhs) = default;
 
     /// Copy operator.
-    void operator =(const Spline& rhs)
-    {
-        knots_ = rhs.knots_;
-        interpolationMode_ = rhs.interpolationMode_;
-    }
+    Spline& operator =(const Spline& rhs) = default;
 
     /// Equality operator.
     bool operator ==(const Spline& rhs) const
@@ -76,18 +74,21 @@ public:
     }
 
     /// Return the interpolation mode.
+    /// @property
     InterpolationMode GetInterpolationMode() const { return interpolationMode_; }
 
     /// Return the knots of the spline.
     const VariantVector& GetKnots() const { return knots_; }
 
     /// Return the knot at the specific index.
+    /// @property
     Variant GetKnot(unsigned index) const { return knots_[index]; }
 
     /// Return the T of the point of the spline at f from 0.f - 1.f.
     Variant GetPoint(float f) const;
 
     /// Set the interpolation mode.
+    /// @property
     void SetInterpolationMode(InterpolationMode interpolationMode) { interpolationMode_ = interpolationMode; }
 
     /// Set the knots of the spline.

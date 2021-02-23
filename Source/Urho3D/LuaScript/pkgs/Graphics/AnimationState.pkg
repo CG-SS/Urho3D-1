@@ -23,6 +23,7 @@ class AnimationState
     void AddTime(float delta);
     void SetLayer(unsigned char layer);
     void SetBlendMode(AnimationBlendMode mode);
+    void Apply();
 
     Animation* GetAnimation() const;
     Bone* GetStartBone() const;

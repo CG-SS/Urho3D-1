@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,49 +28,39 @@ namespace Urho3D
 {
 
 /// Surface in three-dimensional space.
+/// @allfloats
 class URHO3D_API Plane
 {
 public:
     /// Construct a degenerate plane with zero normal and parameter.
-    Plane() :
+    Plane() noexcept :
         d_(0.0f)
     {
     }
 
     /// Copy-construct from another plane.
-    Plane(const Plane& plane) :
-        normal_(plane.normal_),
-        absNormal_(plane.absNormal_),
-        d_(plane.d_)
-    {
-    }
+    Plane(const Plane& plane) noexcept = default;
 
     /// Construct from 3 vertices.
-    Plane(const Vector3& v0, const Vector3& v1, const Vector3& v2)
+    Plane(const Vector3& v0, const Vector3& v1, const Vector3& v2) noexcept
     {
         Define(v0, v1, v2);
     }
 
     /// Construct from a normal vector and a point on the plane.
-    Plane(const Vector3& normal, const Vector3& point)
+    Plane(const Vector3& normal, const Vector3& point) noexcept
     {
         Define(normal, point);
     }
 
     /// Construct from a 4-dimensional vector, where the w coordinate is the plane parameter.
-    Plane(const Vector4& plane)
+    explicit Plane(const Vector4& plane) noexcept
     {
         Define(plane);
     }
 
     /// Assign from another plane.
-    Plane& operator =(const Plane& rhs)
-    {
-        normal_ = rhs.normal_;
-        absNormal_ = rhs.absNormal_;
-        d_ = rhs.d_;
-        return *this;
-    }
+    Plane& operator =(const Plane& rhs) noexcept = default;
 
     /// Define from 3 vertices.
     void Define(const Vector3& v0, const Vector3& v1, const Vector3& v2)
@@ -114,6 +104,7 @@ public:
     Vector3 Reflect(const Vector3& direction) const { return direction - (2.0f * normal_.DotProduct(direction) * normal_); }
 
     /// Return a reflection matrix.
+    /// @property
     Matrix3x4 ReflectionMatrix() const;
     /// Return transformed by a 3x3 matrix.
     Plane Transformed(const Matrix3& transform) const;
@@ -130,7 +121,7 @@ public:
     /// Plane absolute normal.
     Vector3 absNormal_;
     /// Plane constant.
-    float d_;
+    float d_{};
 
     /// Plane at origin with normal pointing up.
     static const Plane UP;

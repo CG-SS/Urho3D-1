@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,31 +34,38 @@ class URHO3D_API ConstraintWeld2D : public Constraint2D
 
 public:
     /// Construct.
-    ConstraintWeld2D(Context* context);
+    explicit ConstraintWeld2D(Context* context);
     /// Destruct.
-    virtual ~ConstraintWeld2D();
+    ~ConstraintWeld2D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Set anchor.
+    /// @property
     void SetAnchor(const Vector2& anchor);
     /// Set frequency Hz.
+    /// @property
     void SetFrequencyHz(float frequencyHz);
     /// Set damping ratio.
+    /// @property
     void SetDampingRatio(float dampingRatio);
 
     /// Return anchor.
+    /// @property
     const Vector2& GetAnchor() const { return anchor_; }
 
     /// Return frequency Hz.
+    /// @property
     float GetFrequencyHz() const { return jointDef_.frequencyHz; }
 
     /// Return damping ratio.
+    /// @property
     float GetDampingRatio() const { return jointDef_.dampingRatio; }
 
 private:
     /// Return joint def.
-    virtual b2JointDef* GetJointDef();
+    b2JointDef* GetJointDef() override;
 
     /// Box2D joint def.
     b2WeldJointDef jointDef_;

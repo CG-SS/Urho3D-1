@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,31 +34,38 @@ class URHO3D_API ConstraintGear2D : public Constraint2D
 
 public:
     /// Construct.
-    ConstraintGear2D(Context* context);
+    explicit ConstraintGear2D(Context* context);
     /// Destruct.
-    virtual ~ConstraintGear2D();
+    ~ConstraintGear2D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Set owner constraint.
+    /// @property
     void SetOwnerConstraint(Constraint2D* constraint);
     /// Set other constraint.
+    /// @property
     void SetOtherConstraint(Constraint2D* constraint);
     /// Set ratio.
+    /// @property
     void SetRatio(float ratio);
 
     /// Return owner constraint.
+    /// @property
     Constraint2D* GetOwnerConstraint() const { return ownerConstraint_; }
 
     /// Return other constraint.
+    /// @property
     Constraint2D* GetOtherConstraint() const { return otherConstraint_; }
 
     /// Return ratio.
+    /// @property
     float GetRatio() const { return jointDef_.ratio; }
 
 private:
     /// Return joint def.
-    virtual b2JointDef* GetJointDef();
+    b2JointDef* GetJointDef() override;
 
     /// Box2D joint def.
     b2GearJointDef jointDef_;

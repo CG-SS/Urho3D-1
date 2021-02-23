@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,9 @@ class Graphics;
 /// API-specific GPU object representation.
 union GPUObjectHandle
 {
-    /// Object pointer (Direct3D.)
+    /// Object pointer (Direct3D).
     void* ptr_;
-    /// Object name (OpenGL.)
+    /// Object name (OpenGL).
     unsigned name_;
 };
 
@@ -43,7 +43,7 @@ class URHO3D_API GPUObject
 {
 public:
     /// Construct with graphics subsystem pointer.
-    GPUObject(Graphics* graphics);
+    explicit GPUObject(Graphics* graphics);
     /// Destruct. Remove from the Graphics.
     virtual ~GPUObject();
 
@@ -64,6 +64,7 @@ public:
     /// Return the object name. Applicable only on OpenGL.
     unsigned GetGPUObjectName() const { return object_.name_; }
     /// Return whether data is lost due to context loss.
+    /// @property
     bool IsDataLost() const { return dataLost_; }
     /// Return whether has pending data assigned while graphics context was lost.
     bool HasPendingData() const { return dataPending_; }
@@ -72,11 +73,11 @@ protected:
     /// Graphics subsystem.
     WeakPtr<Graphics> graphics_;
     /// Object pointer or name.
-    GPUObjectHandle object_;
+    GPUObjectHandle object_{};
     /// Data lost flag.
-    bool dataLost_;
+    bool dataLost_{};
     /// Data pending flag.
-    bool dataPending_;
+    bool dataPending_{};
 };
 
 }

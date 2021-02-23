@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,8 @@ class Octree;
 static const int NUM_OCTANTS = 8;
 static const unsigned ROOT_INDEX = M_MAX_UNSIGNED;
 
-/// %Octree octant
+/// %Octree octant.
+/// @nobind
 class URHO3D_API Octant
 {
 public:
@@ -67,12 +68,13 @@ public:
         if (drawables_.Remove(drawable))
         {
             if (resetOctant)
-                drawable->SetOctant(0);
+                drawable->SetOctant(nullptr);
             DecDrawableCount();
         }
     }
 
     /// Return world-space bounding box.
+    /// @property
     const BoundingBox& GetWorldBoundingBox() const { return worldBoundingBox_; }
 
     /// Return bounding box used for fitting drawable objects.
@@ -139,7 +141,7 @@ protected:
     /// Drawable objects.
     PODVector<Drawable*> drawables_;
     /// Child octants.
-    Octant* children_[NUM_OCTANTS];
+    Octant* children_[NUM_OCTANTS]{};
     /// World bounding box center.
     Vector3 center_;
     /// World bounding box half size.
@@ -147,34 +149,31 @@ protected:
     /// Subdivision level.
     unsigned level_;
     /// Number of drawable objects in this octant and child octants.
-    unsigned numDrawables_;
+    unsigned numDrawables_{};
     /// Parent octant.
     Octant* parent_;
     /// Octree root.
     Octree* root_;
-    /// Octant index relative to its siblings or ROOT_INDEX for root octant
+    /// Octant index relative to its siblings or ROOT_INDEX for root octant.
     unsigned index_;
 };
 
-/// %Octree component. Should be added only to the root scene node
+/// %Octree component. Should be added only to the root scene node.
 class URHO3D_API Octree : public Component, public Octant
 {
-    friend void RaycastDrawablesWork(const WorkItem* item, unsigned threadIndex);
-
     URHO3D_OBJECT(Octree, Component);
 
 public:
     /// Construct.
-    Octree(Context* context);
+    explicit Octree(Context* context);
     /// Destruct.
-    ~Octree();
+    ~Octree() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
-    /// Handle attribute change.
-    virtual void OnSetAttribute(const AttributeInfo& attr, const Variant& src);
     /// Visualize the component as debug geometry.
-    virtual void DrawDebugGeometry(DebugRenderer* debug, bool depthTest);
+    void DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override;
 
     /// Set size and maximum subdivision levels. If octree is not empty, drawable objects will be temporarily moved to the root.
     void SetSize(const BoundingBox& box, unsigned numLevels);
@@ -186,6 +185,7 @@ public:
     void RemoveManualDrawable(Drawable* drawable);
 
     /// Return drawable objects by a query.
+    /// @nobind
     void GetDrawables(OctreeQuery& query) const;
     /// Return drawable objects by a ray query.
     void Raycast(RayOctreeQuery& query) const;
@@ -193,6 +193,7 @@ public:
     void RaycastSingle(RayOctreeQuery& query) const;
 
     /// Return subdivision levels.
+    /// @property
     unsigned GetNumLevels() const { return numLevels_; }
 
     /// Mark drawable object as requiring an update and a reinsertion.
@@ -205,6 +206,8 @@ public:
 private:
     /// Handle render update in case of headless execution.
     void HandleRenderUpdate(StringHash eventType, VariantMap& eventData);
+    /// Update octree size.
+    void UpdateOctreeSize() { SetSize(worldBoundingBox_, numLevels_); }
 
     /// Drawable objects that require update.
     PODVector<Drawable*> drawableUpdates_;

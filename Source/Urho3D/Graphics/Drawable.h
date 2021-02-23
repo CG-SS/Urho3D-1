@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+/// \file
+
 #pragma once
 
 #include "../Graphics/GraphicsDefs.h"
@@ -29,6 +31,7 @@
 namespace Urho3D
 {
 
+static const unsigned DRAWABLE_UNDEFINED = 0x0;
 static const unsigned DRAWABLE_GEOMETRY = 0x1;
 static const unsigned DRAWABLE_LIGHT = 0x2;
 static const unsigned DRAWABLE_ZONE = 0x4;
@@ -88,19 +91,19 @@ struct URHO3D_API SourceBatch
     SourceBatch& operator =(const SourceBatch& rhs);
 
     /// Distance from camera.
-    float distance_;
+    float distance_{};
     /// Geometry.
-    Geometry* geometry_;
+    Geometry* geometry_{};
     /// Material.
     SharedPtr<Material> material_;
     /// World transform(s). For a skinned model, these are the bone transforms.
-    const Matrix3x4* worldTransform_;
+    const Matrix3x4* worldTransform_{&Matrix3x4::IDENTITY};
     /// Number of world transforms.
-    unsigned numWorldTransforms_;
+    unsigned numWorldTransforms_{1};
     /// Per-instance data. If not null, must contain enough data to fill instancing buffer.
-    void* instancingData_;
+    void* instancingData_{};
     /// %Geometry type.
-    GeometryType geometryType_;
+    GeometryType geometryType_{GEOM_STATIC};
 };
 
 /// Base class for visible components.
@@ -116,15 +119,16 @@ public:
     /// Construct.
     Drawable(Context* context, unsigned char drawableFlags);
     /// Destruct.
-    virtual ~Drawable();
+    ~Drawable() override;
     /// Register object attributes. Drawable must be registered first.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Handle enabled/disabled state change.
-    virtual void OnSetEnabled();
+    void OnSetEnabled() override;
     /// Process octree raycast. May be called from a worker thread.
     virtual void ProcessRayQuery(const RayOctreeQuery& query, PODVector<RayQueryResult>& results);
-    /// Update before octree reinsertion. Is called from a worker thread
+    /// Update before octree reinsertion. Is called from a worker thread.
     virtual void Update(const FrameInfo& frame) { }
     /// Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.
     virtual void UpdateBatches(const FrameInfo& frame);
@@ -143,76 +147,101 @@ public:
     /// Draw to occlusion buffer. Return true if did not run out of triangles.
     virtual bool DrawOcclusion(OcclusionBuffer* buffer);
     /// Visualize the component as debug geometry.
-    virtual void DrawDebugGeometry(DebugRenderer* debug, bool depthTest);
+    void DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override;
 
     /// Set draw distance.
+    /// @property
     void SetDrawDistance(float distance);
     /// Set shadow draw distance.
+    /// @property
     void SetShadowDistance(float distance);
     /// Set LOD bias.
+    /// @property
     void SetLodBias(float bias);
     /// Set view mask. Is and'ed with camera's view mask to see if the object should be rendered.
+    /// @property
     void SetViewMask(unsigned mask);
     /// Set light mask. Is and'ed with light's and zone's light mask to see if the object should be lit.
+    /// @property
     void SetLightMask(unsigned mask);
     /// Set shadow mask. Is and'ed with light's light mask and zone's shadow mask to see if the object should be rendered to a shadow map.
+    /// @property
     void SetShadowMask(unsigned mask);
     /// Set zone mask. Is and'ed with zone's zone mask to see if the object should belong to the zone.
+    /// @property
     void SetZoneMask(unsigned mask);
     /// Set maximum number of per-pixel lights. Default 0 is unlimited.
+    /// @property
     void SetMaxLights(unsigned num);
     /// Set shadowcaster flag.
+    /// @property
     void SetCastShadows(bool enable);
     /// Set occlusion flag.
+    /// @property
     void SetOccluder(bool enable);
     /// Set occludee flag.
+    /// @property
     void SetOccludee(bool enable);
     /// Mark for update and octree reinsertion. Update is automatically queued when the drawable's scene node moves or changes scale.
     void MarkForUpdate();
 
     /// Return local space bounding box. May not be applicable or properly updated on all drawables.
+    /// @property
     const BoundingBox& GetBoundingBox() const { return boundingBox_; }
 
     /// Return world-space bounding box.
+    /// @property
     const BoundingBox& GetWorldBoundingBox();
 
     /// Return drawable flags.
     unsigned char GetDrawableFlags() const { return drawableFlags_; }
 
     /// Return draw distance.
+    /// @property
     float GetDrawDistance() const { return drawDistance_; }
 
     /// Return shadow draw distance.
+    /// @property
     float GetShadowDistance() const { return shadowDistance_; }
 
     /// Return LOD bias.
+    /// @property
     float GetLodBias() const { return lodBias_; }
 
     /// Return view mask.
+    /// @property
     unsigned GetViewMask() const { return viewMask_; }
 
     /// Return light mask.
+    /// @property
     unsigned GetLightMask() const { return lightMask_; }
 
     /// Return shadow mask.
+    /// @property
     unsigned GetShadowMask() const { return shadowMask_; }
 
     /// Return zone mask.
+    /// @property
     unsigned GetZoneMask() const { return zoneMask_; }
 
     /// Return maximum number of per-pixel lights.
+    /// @property
     unsigned GetMaxLights() const { return maxLights_; }
 
     /// Return shadowcaster flag.
+    /// @property
     bool GetCastShadows() const { return castShadows_; }
 
     /// Return occluder flag.
+    /// @property
     bool IsOccluder() const { return occluder_; }
 
     /// Return occludee flag.
+    /// @property
     bool IsOccludee() const { return occludee_; }
 
     /// Return whether is in view this frame from any viewport camera. Excludes shadow map cameras.
+    /// @property
     bool IsInView() const;
     /// Return whether is in view of a specific camera this frame. Pass in a null camera to allow any camera, including shadow map cameras.
     bool IsInView(Camera* camera) const;
@@ -242,12 +271,13 @@ public:
     void LimitVertexLights(bool removeConvertedLights);
 
     /// Set base pass flag for a batch.
-    void SetBasePass(unsigned batchIndex) { basePassFlags_ |= (1 << batchIndex); }
+    void SetBasePass(unsigned batchIndex) { basePassFlags_ |= (1u << batchIndex); }
 
     /// Return octree octant.
     Octant* GetOctant() const { return octant_; }
 
     /// Return current zone.
+    /// @property
     Zone* GetZone() const { return zone_; }
 
     /// Return whether current zone is inconclusive or dirty due to the drawable moving.
@@ -266,7 +296,7 @@ public:
     bool IsInView(const FrameInfo& frame, bool anyCamera = false) const;
 
     /// Return whether has a base pass.
-    bool HasBasePass(unsigned batchIndex) const { return (basePassFlags_ & (1 << batchIndex)) != 0; }
+    bool HasBasePass(unsigned batchIndex) const { return (basePassFlags_ & (1u << batchIndex)) != 0; }
 
     /// Return per-pixel lights.
     const PODVector<Light*>& GetLights() const { return lights_; }
@@ -303,11 +333,11 @@ public:
 
 protected:
     /// Handle node being assigned.
-    virtual void OnNodeSet(Node* node);
+    void OnNodeSet(Node* node) override;
     /// Handle scene being assigned.
-    virtual void OnSceneSet(Scene* scene);
+    void OnSceneSet(Scene* scene) override;
     /// Handle node transform being dirtied.
-    virtual void OnMarkedDirty(Node* node);
+    void OnMarkedDirty(Node* node) override;
     /// Recalculate the world-space bounding box.
     virtual void OnWorldBoundingBoxUpdate() = 0;
 
@@ -391,6 +421,6 @@ inline bool CompareDrawables(Drawable* lhs, Drawable* rhs)
     return lhs->GetSortValue() < rhs->GetSortValue();
 }
 
-URHO3D_API bool WriteDrawablesToOBJ(PODVector<Drawable*> drawables, File* outputFile, bool asZUp, bool asRightHanded, bool writeLightmapUV = false);
+URHO3D_API bool WriteDrawablesToOBJ(const PODVector<Drawable*>& drawables, File* outputFile, bool asZUp, bool asRightHanded, bool writeLightmapUV = false);
 
 }

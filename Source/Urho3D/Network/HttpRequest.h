@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+/// \file
+
 #pragma once
 
 #include "../Container/ArrayPtr.h"
@@ -31,7 +33,7 @@
 namespace Urho3D
 {
 
-/// HTTP connection state
+/// HTTP connection state.
 enum HttpRequestState
 {
     HTTP_INITIALIZING = 0,
@@ -47,32 +49,38 @@ public:
     /// Construct with parameters.
     HttpRequest(const String& url, const String& verb, const Vector<String>& headers, const String& postData);
     /// Destruct. Release the connection object.
-    ~HttpRequest();
+    ~HttpRequest() override;
 
     /// Process the connection in the worker thread until closed.
-    virtual void ThreadFunction();
+    void ThreadFunction() override;
 
     /// Read response data from the HTTP connection and return number of bytes actually read. While the connection is open, will block while trying to read the specified size. To avoid blocking, only read up to as many bytes as GetAvailableSize() returns.
-    virtual unsigned Read(void* dest, unsigned size);
+    unsigned Read(void* dest, unsigned size) override;
     /// Set position from the beginning of the stream. Not supported.
-    virtual unsigned Seek(unsigned position);
+    unsigned Seek(unsigned position) override;
     /// Return whether all response data has been read.
-    virtual bool IsEof() const;
+    bool IsEof() const override;
 
     /// Return URL used in the request.
+    /// @property{get_url}
     const String& GetURL() const { return url_; }
 
     /// Return verb used in the request. Default GET if empty verb specified on construction.
+    /// @property
     const String& GetVerb() const { return verb_; }
 
     /// Return error. Only non-empty in the error state.
+    /// @property
     String GetError() const;
     /// Return connection state.
+    /// @property
     HttpRequestState GetState() const;
     /// Return amount of bytes in the read buffer.
+    /// @property
     unsigned GetAvailableSize() const;
 
     /// Return whether connection is in the open state.
+    /// @property
     bool IsOpen() const { return GetState() == HTTP_OPEN; }
 
 private:

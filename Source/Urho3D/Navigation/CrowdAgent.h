@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+/// \file
 
 #pragma once
 
@@ -78,116 +80,150 @@ class URHO3D_API CrowdAgent : public Component
 
 public:
     /// Construct.
-    CrowdAgent(Context* context);
+    explicit CrowdAgent(Context* context);
     /// Destruct.
-    virtual ~CrowdAgent();
+    ~CrowdAgent() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
     /// Apply attribute changes that can not be applied immediately. Called after scene load or a network update.
-    virtual void ApplyAttributes();
+    void ApplyAttributes() override;
 
     /// Handle enabled/disabled state change.
-    virtual void OnSetEnabled();
+    void OnSetEnabled() override;
     /// Draw debug geometry.
-    void DrawDebugGeometry(bool);
+    void DrawDebugGeometry(bool depthTest);
     /// Draw debug feelers.
-    virtual void DrawDebugGeometry(DebugRenderer* debug, bool depthTest);
+    void DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override;
 
     /// Submit a new target position request for this agent.
+    /// @property
     void SetTargetPosition(const Vector3& position);
     /// Submit a new target velocity request for this agent.
+    /// @property
     void SetTargetVelocity(const Vector3& velocity);
     /// Reset any target request for the specified agent. Note that the agent will continue to move into the current direction; set a zero target velocity to actually stop.
     void ResetTarget();
     /// Update the node position. When set to false, the node position should be updated by other means (e.g. using Physics) in response to the E_CROWD_AGENT_REPOSITION event.
+    /// @property
     void SetUpdateNodePosition(bool unodepos);
     /// Set the agent's max acceleration.
+    /// @property
     void SetMaxAccel(float maxAccel);
     /// Set the agent's max velocity.
+    /// @property
     void SetMaxSpeed(float maxSpeed);
     /// Set the agent's radius.
+    /// @property
     void SetRadius(float radius);
     /// Set the agent's height.
+    /// @property
     void SetHeight(float height);
     /// Set the agent's query filter type.
+    /// @property
     void SetQueryFilterType(unsigned queryFilterType);
     /// Set the agent's obstacle avoidance type.
+    /// @property
     void SetObstacleAvoidanceType(unsigned obstacleAvoidanceType);
     /// Set the agent's navigation quality.
+    /// @property
     void SetNavigationQuality(NavigationQuality val);
     /// Set the agent's navigation pushiness.
+    /// @property
     void SetNavigationPushiness(NavigationPushiness val);
 
     /// Return the agent's position.
+    /// @property
     Vector3 GetPosition() const;
     /// Return the agent's desired velocity.
+    /// @property
     Vector3 GetDesiredVelocity() const;
     /// Return the agent's actual velocity.
+    /// @property
     Vector3 GetActualVelocity() const;
 
     /// Return the agent's requested target position.
+    /// @property
     const Vector3& GetTargetPosition() const { return targetPosition_; }
 
     /// Return the agent's requested target velocity.
+    /// @property
     const Vector3& GetTargetVelocity() const { return targetVelocity_; }
 
     /// Return the agent's requested target type, if any.
+    /// @property
     CrowdAgentRequestedTarget GetRequestedTargetType() const { return requestedTargetType_; }
 
     /// Return the agent's  state.
+    /// @property
     CrowdAgentState GetAgentState() const;
     /// Return the agent's target state.
+    /// @property
     CrowdAgentTargetState GetTargetState() const;
 
     /// Return true when the node's position should be updated by the CrowdManager.
+    /// @property
     bool GetUpdateNodePosition() const { return updateNodePosition_; }
 
     /// Return the agent id.
     int GetAgentCrowdId() const { return agentCrowdId_; }
 
     /// Get the agent's max acceleration.
+    /// @property
     float GetMaxAccel() const { return maxAccel_; }
 
     /// Get the agent's max velocity.
+    /// @property
     float GetMaxSpeed() const { return maxSpeed_; }
 
     /// Get the agent's radius.
+    /// @property
     float GetRadius() const { return radius_; }
 
     /// Get the agent's height.
+    /// @property
     float GetHeight() const { return height_; }
 
     /// Get the agent's query filter type.
+    /// @property
     unsigned GetQueryFilterType() const { return queryFilterType_; }
 
     /// Get the agent's obstacle avoidance type.
+    /// @property
     unsigned GetObstacleAvoidanceType() const { return obstacleAvoidanceType_; }
 
     /// Get the agent's navigation quality.
+    /// @property
     NavigationQuality GetNavigationQuality() const { return navQuality_; }
 
     /// Get the agent's navigation pushiness.
+    /// @property
     NavigationPushiness GetNavigationPushiness() const { return navPushiness_; }
 
     /// Return true when the agent has a target.
+    /// @property{get_requestedTarget}
     bool HasRequestedTarget() const { return requestedTargetType_ != CA_REQUESTEDTARGET_NONE; }
 
     /// Return true when the agent has arrived at its target.
+    /// @property{get_arrived}
     bool HasArrived() const;
     /// Return true when the agent is in crowd (being managed by a crowd manager).
+    /// @property
     bool IsInCrowd() const;
 
 protected:
     /// Handle crowd agent being updated. It is called by CrowdManager::Update() via callback.
     virtual void OnCrowdUpdate(dtCrowdAgent* ag, float dt);
     /// Handle node being assigned.
-    virtual void OnNodeSet(Node* node);
+    void OnNodeSet(Node* node) override;
     /// Handle node being assigned.
-    virtual void OnSceneSet(Scene* scene);
+    void OnSceneSet(Scene* scene) override;
     /// \todo Handle node transform being dirtied.
-    virtual void OnMarkedDirty(Node* node);
+    void OnMarkedDirty(Node* node) override;
     /// Get internal Detour crowd agent.
     const dtCrowdAgent* GetDetourCrowdAgent() const;
+    /// Handle navigation mesh tile added.
+    void HandleNavigationTileAdded(StringHash eventType, VariantMap& eventData);
 
 private:
     /// Update Detour crowd agent parameter.

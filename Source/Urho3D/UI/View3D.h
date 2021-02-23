@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,39 +40,49 @@ class URHO3D_API View3D : public Window
 
 public:
     /// Construct.
-    View3D(Context* context);
+    explicit View3D(Context* context);
     /// Destruct.
-    ~View3D();
+    ~View3D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// React to resize.
-    virtual void OnResize(const IntVector2& newSize, const IntVector2& delta);
+    void OnResize(const IntVector2& newSize, const IntVector2& delta) override;
 
     /// Define the scene and camera to use in rendering. When ownScene is true the View3D will take ownership of them with shared pointers.
     void SetView(Scene* scene, Camera* camera, bool ownScene = true);
     /// Set render texture pixel format. Default is RGB.
+    /// @property
     void SetFormat(unsigned format);
     /// Set render target auto update mode. Default is true.
+    /// @property
     void SetAutoUpdate(bool enable);
     /// Queue manual update on the render texture.
     void QueueUpdate();
 
     /// Return render texture pixel format.
+    /// @property
     unsigned GetFormat() const { return rttFormat_; }
 
     /// Return whether render target updates automatically.
+    /// @property
     bool GetAutoUpdate() const { return autoUpdate_; }
 
     /// Return scene.
+    /// @property
     Scene* GetScene() const;
     /// Return camera scene node.
+    /// @property
     Node* GetCameraNode() const;
     /// Return render texture.
+    /// @property
     Texture2D* GetRenderTexture() const;
     /// Return depth stencil texture.
+    /// @property
     Texture2D* GetDepthTexture() const;
     /// Return viewport.
+    /// @property
     Viewport* GetViewport() const;
 
 private:

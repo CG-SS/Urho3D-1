@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+/// \file
 
 #pragma once
 
@@ -58,13 +60,13 @@ struct AsyncProgress
     SharedPtr<File> file_;
     /// XML file for XML mode.
     SharedPtr<XMLFile> xmlFile_;
-    /// JSON file for JSON mode
+    /// JSON file for JSON mode.
     SharedPtr<JSONFile> jsonFile_;
 
     /// Current XML element for XML mode.
     XMLElement xmlElement_;
 
-    /// Current JSON child array and for JSON mode
+    /// Current JSON child array and for JSON mode.
     unsigned jsonIndex_;
 
     /// Current load mode.
@@ -86,30 +88,34 @@ class URHO3D_API Scene : public Node
 {
     URHO3D_OBJECT(Scene, Node);
 
+public:
+    /// @manualbind
     using Node::GetComponent;
+    /// @manualbind
     using Node::SaveXML;
+    /// @manualbind
     using Node::SaveJSON;
 
-public:
     /// Construct.
-    Scene(Context* context);
+    explicit Scene(Context* context);
     /// Destruct.
-    virtual ~Scene();
+    ~Scene() override;
     /// Register object factory. Node must be registered first.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Load from binary data. Removes all existing child nodes and components first. Return true if successful.
-    virtual bool Load(Deserializer& source, bool setInstanceDefault = false);
+    bool Load(Deserializer& source) override;
     /// Save to binary data. Return true if successful.
-    virtual bool Save(Serializer& dest) const;
+    bool Save(Serializer& dest) const override;
     /// Load from XML data. Removes all existing child nodes and components first. Return true if successful.
-    virtual bool LoadXML(const XMLElement& source, bool setInstanceDefault = false);
+    bool LoadXML(const XMLElement& source) override;
     /// Load from JSON data. Removes all existing child nodes and components first. Return true if successful.
-    virtual bool LoadJSON(const JSONValue& source, bool setInstanceDefault = false);
+    bool LoadJSON(const JSONValue& source) override;
     /// Mark for attribute check on the next network update.
-    virtual void MarkNetworkUpdate();
+    void MarkNetworkUpdate() override;
     /// Add a replication state that is tracking this scene.
-    virtual void AddReplicationState(NodeReplicationState* state);
+    void AddReplicationState(NodeReplicationState* state) override;
 
     /// Load from an XML file. Return true if successful.
     bool LoadXML(Deserializer& source);
@@ -143,22 +149,28 @@ public:
     /// Clear scene completely of either replicated, local or all nodes and components.
     void Clear(bool clearReplicated = true, bool clearLocal = true);
     /// Enable or disable scene update.
+    /// @property
     void SetUpdateEnabled(bool enable);
-    /// Set update time scale. 1.0 = real time (default.)
+    /// Set update time scale. 1.0 = real time (default).
+    /// @property
     void SetTimeScale(float scale);
     /// Set elapsed time in seconds. This can be used to prevent inaccuracy in the timer if the scene runs for a long time.
+    /// @property
     void SetElapsedTime(float time);
     /// Set network client motion smoothing constant.
+    /// @property
     void SetSmoothingConstant(float constant);
     /// Set network client motion smoothing snap threshold.
+    /// @property
     void SetSnapThreshold(float threshold);
     /// Set maximum milliseconds per frame to spend on async scene loading.
+    /// @property
     void SetAsyncLoadingMs(int ms);
     /// Add a required package file for networking. To be called on the server.
     void AddRequiredPackageFile(PackageFile* package);
     /// Clear required package files.
     void ClearRequiredPackageFiles();
-    /// Register a node user variable hash reverse mapping (for editing.)
+    /// Register a node user variable hash reverse mapping (for editing).
     void RegisterVar(const String& name);
     /// Unregister a node user variable hash reverse mapping.
     void UnregisterVar(const String& name);
@@ -173,39 +185,51 @@ public:
     bool GetNodesWithTag(PODVector<Node*>& dest, const String& tag)  const;
 
     /// Return whether updates are enabled.
+    /// @property
     bool IsUpdateEnabled() const { return updateEnabled_; }
 
     /// Return whether an asynchronous loading operation is in progress.
+    /// @property
     bool IsAsyncLoading() const { return asyncLoading_; }
 
     /// Return asynchronous loading progress between 0.0 and 1.0, or 1.0 if not in progress.
+    /// @property
     float GetAsyncProgress() const;
 
     /// Return the load mode of the current asynchronous loading operation.
+    /// @property
     LoadMode GetAsyncLoadMode() const { return asyncProgress_.mode_; }
 
     /// Return source file name.
+    /// @property
     const String& GetFileName() const { return fileName_; }
 
     /// Return source file checksum.
+    /// @property
     unsigned GetChecksum() const { return checksum_; }
 
     /// Return update time scale.
+    /// @property
     float GetTimeScale() const { return timeScale_; }
 
     /// Return elapsed time in seconds.
+    /// @property
     float GetElapsedTime() const { return elapsedTime_; }
 
     /// Return motion smoothing constant.
+    /// @property
     float GetSmoothingConstant() const { return smoothingConstant_; }
 
     /// Return motion smoothing snap threshold.
+    /// @property
     float GetSnapThreshold() const { return snapThreshold_; }
 
     /// Return maximum milliseconds per frame to spend on async loading.
+    /// @property
     int GetAsyncLoadingMs() const { return asyncLoadingMs_; }
 
     /// Return required package files.
+    /// @property
     const Vector<SharedPtr<PackageFile> >& GetRequiredPackageFiles() const { return requiredPackageFiles_; }
 
     /// Return a node user variable name, or empty if not registered.
@@ -227,6 +251,8 @@ public:
     unsigned GetFreeNodeID(CreateMode mode);
     /// Get free component ID, either non-local or local.
     unsigned GetFreeComponentID(CreateMode mode);
+    /// Return whether the specified id is a replicated id.
+    static bool IsReplicatedID(unsigned id) { return id < FIRST_LOCAL_ID; }
 
     /// Cache node by tag if tag not zero, no checking if already added. Used internaly in Node::AddTag.
     void NodeTagAdded(Node* node, const String& tag);
@@ -248,6 +274,7 @@ public:
     /// Prepare network update by comparing attributes and marking replication states dirty as necessary.
     void PrepareNetworkUpdate();
     /// Clean up all references to a network connection that is about to be removed.
+    /// @manualbind
     void CleanupConnection(Connection* connection);
     /// Mark a node for attribute check on the next network update.
     void MarkNetworkUpdate(Node* node);
@@ -335,6 +362,7 @@ private:
 };
 
 /// Register Scene library objects.
+/// @nobind
 void URHO3D_API RegisterSceneLibrary(Context* context);
 
 }

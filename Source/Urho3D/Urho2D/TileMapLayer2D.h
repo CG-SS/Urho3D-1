@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,20 +47,23 @@ class URHO3D_API TileMapLayer2D : public Component
 
 public:
     /// Construct.
-    TileMapLayer2D(Context* context);
+    explicit TileMapLayer2D(Context* context);
     /// Destruct.
-    ~TileMapLayer2D();
+    ~TileMapLayer2D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Add debug geometry to the debug renderer.
-    virtual void DrawDebugGeometry(DebugRenderer* debug, bool depthTest);
+    void DrawDebugGeometry(DebugRenderer* debug, bool depthTest) override;
 
     /// Initialize with tile map and tmx layer.
     void Initialize(TileMap2D* tileMap, const TmxLayer2D* tmxLayer);
-    /// Set draw order
+    /// Set draw order.
+    /// @property
     void SetDrawOrder(int drawOrder);
     /// Set visible.
+    /// @property
     void SetVisible(bool visible);
 
     /// Return tile map.
@@ -70,21 +73,26 @@ public:
     const TmxLayer2D* GetTmxLayer() const { return tmxLayer_; }
 
     /// Return draw order.
+    /// @property
     int GetDrawOrder() const { return drawOrder_; }
 
     /// Return visible.
+    /// @property
     bool IsVisible() const { return visible_; }
 
-    /// Return has property
+    /// Return has property.
     bool HasProperty(const String& name) const;
     /// Return property.
     const String& GetProperty(const String& name) const;
     /// Return layer type.
+    /// @property
     TileMapLayerType2D GetLayerType() const;
 
     /// Return width (for tile layer only).
+    /// @property
     int GetWidth() const;
     /// Return height (for tile layer only).
+    /// @property
     int GetHeight() const;
     /// Return tile node (for tile layer only).
     Node* GetTileNode(int x, int y) const;
@@ -92,6 +100,7 @@ public:
     Tile2D* GetTile(int x, int y) const;
 
     /// Return number of tile map objects (for object group only).
+    /// @property
     unsigned GetNumObjects() const;
     /// Return tile map object (for object group only).
     TileMapObject2D* GetObject(unsigned index) const;
@@ -99,6 +108,7 @@ public:
     Node* GetObjectNode(unsigned index) const;
 
     /// Return image node (for image layer only).
+    /// @property
     Node* GetImageNode() const;
 
 private:
@@ -112,17 +122,17 @@ private:
     /// Tile map.
     WeakPtr<TileMap2D> tileMap_;
     /// Tmx layer.
-    const TmxLayer2D* tmxLayer_;
+    const TmxLayer2D* tmxLayer_{};
     /// Tile layer.
-    const TmxTileLayer2D* tileLayer_;
+    const TmxTileLayer2D* tileLayer_{};
     /// Object group.
-    const TmxObjectGroup2D* objectGroup_;
+    const TmxObjectGroup2D* objectGroup_{};
     /// Image layer.
-    const TmxImageLayer2D* imageLayer_;
+    const TmxImageLayer2D* imageLayer_{};
     /// Draw order.
-    int drawOrder_;
+    int drawOrder_{};
     /// Visible.
-    bool visible_;
+    bool visible_{true};
     /// Tile node or image nodes.
     Vector<SharedPtr<Node> > nodes_;
 };

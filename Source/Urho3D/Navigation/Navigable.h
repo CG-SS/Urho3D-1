@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,16 +34,19 @@ class URHO3D_API Navigable : public Component
 
 public:
     /// Construct.
-    Navigable(Context* context);
+    explicit Navigable(Context* context);
     /// Destruct.
-    virtual ~Navigable();
+    ~Navigable() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Set whether geometry is automatically collected from child nodes. Default true.
+    /// @property
     void SetRecursive(bool enable);
 
     /// Return whether geometry is automatically collected from child nodes.
+    /// @property
     bool IsRecursive() const { return recursive_; }
 
 private:

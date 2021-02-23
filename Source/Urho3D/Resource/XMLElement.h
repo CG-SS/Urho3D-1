@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -70,6 +70,10 @@ public:
     XMLElement GetOrCreateChild(const String& name);
     /// Return the first child element with name or create if does not exist.
     XMLElement GetOrCreateChild(const char* name);
+    /// Append element. If asCopy is set to true then original element is copied and appended, otherwise specified element is appended.
+    bool AppendChild(XMLElement element, bool asCopy = false);
+    /// Remove element from its parent.
+    bool Remove();
     /// Remove a child element. Return true if successful.
     bool RemoveChild(const XMLElement& element);
     /// Remove a child element by name. Return true if successful.
@@ -86,15 +90,16 @@ public:
     bool RemoveAttribute(const char* name);
 
     /// Select an element/attribute using XPath query.
-    XMLElement SelectSingle(const String& query, pugi::xpath_variable_set* variables = 0) const;
+    XMLElement SelectSingle(const String& query, pugi::xpath_variable_set* variables = nullptr) const;
     /// Select an element/attribute using XPath query.
     XMLElement SelectSinglePrepared(const XPathQuery& query) const;
     /// Select elements/attributes using XPath query.
-    XPathResultSet Select(const String& query, pugi::xpath_variable_set* variables = 0) const;
+    XPathResultSet Select(const String& query, pugi::xpath_variable_set* variables = nullptr) const;
     /// Select elements/attributes using XPath query.
     XPathResultSet SelectPrepared(const XPathQuery& query) const;
 
     /// Set the value for an inner node in the following format <node>value</node>.
+    /// @property
     bool SetValue(const String& value);
     /// Set the value for an inner node in the following format <node>value</node>. Must be used on the <node> element.
     bool SetValue(const char* value);
@@ -170,12 +175,15 @@ public:
     bool SetMatrix4(const String& name, const Matrix4& value);
 
     /// Return whether does not refer to an element or an XPath node.
+    /// @property{get_isNull}
     bool IsNull() const;
     /// Return whether refers to an element or an XPath node.
+    /// @property
     bool NotNull() const;
     /// Return true if refers to an element or an XPath node.
-    operator bool() const;
+    explicit operator bool() const;
     /// Return element name (or attribute name if it is an attribute only XPath query result).
+    /// @property
     String GetName() const;
     /// Return whether has a child element.
     bool HasChild(const String& name) const;
@@ -190,14 +198,17 @@ public:
     /// Return next sibling element.
     XMLElement GetNext(const char* name) const;
     /// Return parent element.
+    /// @property
     XMLElement GetParent() const;
     /// Return number of attributes.
+    /// @property
     unsigned GetNumAttributes() const;
     /// Return whether has an attribute.
     bool HasAttribute(const String& name) const;
     /// Return whether has an attribute.
     bool HasAttribute(const char* name) const;
-    /// Return inner value, or empty if missing for nodes like <node>value</node>
+    /// Return inner value, or empty if missing for nodes like <node>value</node>.
+    /// @property
     String GetValue() const;
     /// Return attribute, or empty if missing.
     String GetAttribute(const String& name = String::EMPTY) const;
@@ -278,6 +289,7 @@ public:
     /// Return a Matrix4 attribute, or zero matrix if missing.
     Matrix4 GetMatrix4(const String& name) const;
     /// Return XML file.
+    /// @property
     XMLFile* GetFile() const;
 
     /// Return pugixml xml_node_struct.
@@ -293,6 +305,7 @@ public:
     unsigned GetXPathResultIndex() const { return xpathResultIndex_; }
 
     /// Return next XPath query result. Only valid when this instance of XMLElement is itself one of the query result in the result set.
+    /// @property
     XMLElement NextResult() const;
 
     /// Empty XMLElement.
@@ -330,10 +343,13 @@ public:
     XMLElement operator [](unsigned index) const;
     /// Return the first result in the set. Call XMLElement::GetNextResult() to get the subsequent result in the set.
     /// Note: The XPathResultSet return value must be stored in a lhs variable to ensure the underlying xpath_node_set* is still valid while performing XPathResultSet::FirstResult(), XPathResultSet::operator [], and XMLElement::NextResult().
+    /// @property
     XMLElement FirstResult();
     /// Return size of result set.
+    /// @property
     unsigned Size() const;
     /// Return whether result set is empty.
+    /// @property
     bool Empty() const;
 
     /// Return pugixml xpath_node_set.
@@ -353,7 +369,7 @@ public:
     /// Construct empty.
     XPathQuery();
     /// Construct XPath query object with query string and variable string. The variable string format is "name1:type1,name2:type2,..." where type is one of "Bool", "Float", "String", "ResultSet".
-    XPathQuery(const String& queryString, const String& variableString = String::EMPTY);
+    explicit XPathQuery(const String& queryString, const String& variableString = String::EMPTY);
     /// Destruct.
     ~XPathQuery();
     /// Bind query object with variable set.
@@ -373,16 +389,17 @@ public:
     /// Clear by removing all variables and XPath query object.
     void Clear();
     /// Evaluate XPath query and expecting a boolean return value.
-    bool EvaluateToBool(XMLElement element) const;
+    bool EvaluateToBool(const XMLElement& element) const;
     /// Evaluate XPath query and expecting a float return value.
-    float EvaluateToFloat(XMLElement element) const;
+    float EvaluateToFloat(const XMLElement& element) const;
     /// Evaluate XPath query and expecting a string return value.
-    String EvaluateToString(XMLElement element) const;
+    String EvaluateToString(const XMLElement& element) const;
     /// Evaluate XPath query and expecting an XPath query result set as return value.
     /// Note: The XPathResultSet return value must be stored in a lhs variable to ensure the underlying xpath_node_set* is still valid while performing XPathResultSet::FirstResult(), XPathResultSet::operator [], and XMLElement::NextResult().
-    XPathResultSet Evaluate(XMLElement element) const;
+    XPathResultSet Evaluate(const XMLElement& element) const;
 
     /// Return query string.
+    /// @property
     String GetQuery() const { return queryString_; }
 
     /// Return pugixml xpath_query.

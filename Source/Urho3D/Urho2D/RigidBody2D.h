@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+/// \file
 
 #pragma once
 
@@ -48,40 +50,54 @@ class URHO3D_API RigidBody2D : public Component
 
 public:
     /// Construct.
-    RigidBody2D(Context* context);
+    explicit RigidBody2D(Context* context);
     /// Destruct.
-    virtual ~RigidBody2D();
+    ~RigidBody2D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Handle enabled/disabled state change.
-    virtual void OnSetEnabled();
+    void OnSetEnabled() override;
 
     /// Set body type.
-    void SetBodyType(BodyType2D bodyType);
+    /// @property
+    void SetBodyType(BodyType2D type);
     /// Set mass.
+    /// @property
     void SetMass(float mass);
     /// Set inertia.
+    /// @property
     void SetInertia(float inertia);
     /// Set mass center.
+    /// @property
     void SetMassCenter(const Vector2& center);
     /// Set whether to automatically calculate mass and inertia from collision shapes. Default true.
+    /// @property
     void SetUseFixtureMass(bool useFixtureMass);
     /// Set linear damping.
+    /// @property
     void SetLinearDamping(float linearDamping);
     /// Set angular damping.
+    /// @property
     void SetAngularDamping(float angularDamping);
     /// Set allow sleep.
+    /// @property
     void SetAllowSleep(bool allowSleep);
     /// Set fixed rotation.
+    /// @property
     void SetFixedRotation(bool fixedRotation);
     /// Set bullet mode.
+    /// @property
     void SetBullet(bool bullet);
     /// Set gravity scale.
+    /// @property
     void SetGravityScale(float gravityScale);
     /// Set awake.
+    /// @property
     void SetAwake(bool awake);
     /// Set linear velocity.
+    /// @property
     void SetLinearVelocity(const Vector2& linearVelocity);
     /// Set angular velocity.
     void SetAngularVelocity(float angularVelocity);
@@ -117,39 +133,52 @@ public:
     void RemoveConstraint2D(Constraint2D* constraint);
 
     /// Return body type.
+    /// @property
     BodyType2D GetBodyType() const { return body_ ? (BodyType2D)body_->GetType() : (BodyType2D)bodyDef_.type; }
 
     /// Return mass.
+    /// @property
     float GetMass() const;
     /// Return inertia.
+    /// @property
     float GetInertia() const;
     /// Return mass center.
+    /// @property
     Vector2 GetMassCenter() const;
 
     /// Return whether to calculate mass and inertia from collision shapes automatically.
+    /// @property
     bool GetUseFixtureMass() const { return useFixtureMass_; }
 
     /// Return linear damping.
+    /// @property
     float GetLinearDamping() const { return body_ ? body_->GetLinearDamping() : bodyDef_.linearDamping; }
 
     /// Return angular damping.
+    /// @property
     float GetAngularDamping() const { return body_ ? body_->GetAngularDamping() : bodyDef_.angularDamping; }
 
     /// Return allow sleep.
+    /// @property
     bool IsAllowSleep() const { return body_ ? body_->IsSleepingAllowed() : bodyDef_.allowSleep; }
 
     /// Return fixed rotation.
+    /// @property
     bool IsFixedRotation() const { return body_ ? body_->IsFixedRotation() : bodyDef_.fixedRotation; }
 
     /// Return bullet mode.
+    /// @property
     bool IsBullet() const { return body_ ? body_->IsBullet() : bodyDef_.bullet; }
 
     /// Return gravity scale.
+    /// @property
     float GetGravityScale() const { return body_ ? body_->GetGravityScale() : bodyDef_.gravityScale; }
 
     /// Return awake.
+    /// @property
     bool IsAwake() const;
     /// Return linear velocity.
+    /// @property
     Vector2 GetLinearVelocity() const;
     /// Return angular velocity.
     float GetAngularVelocity() const;
@@ -159,11 +188,11 @@ public:
 
 private:
     /// Handle node being assigned.
-    virtual void OnNodeSet(Node* node);
+    void OnNodeSet(Node* node) override;
     /// Handle scene being assigned.
-    virtual void OnSceneSet(Scene* scene);
+    void OnSceneSet(Scene* scene) override;
     /// Handle node transform being dirtied.
-    virtual void OnMarkedDirty(Node* node);
+    void OnMarkedDirty(Node* node) override;
 
     /// Physics world.
     WeakPtr<PhysicsWorld2D> physicsWorld_;
@@ -171,7 +200,7 @@ private:
     b2BodyDef bodyDef_;
     /// Box2D mass data.
     b2MassData massData_;
-    /// Use fixture mass (calculate mass & inertia from collision shapes automatically.)
+    /// Use fixture mass (calculate mass & inertia from collision shapes automatically).
     bool useFixtureMass_;
     /// Box2D body.
     b2Body* body_;

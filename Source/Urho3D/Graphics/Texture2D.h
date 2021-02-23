@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,22 +39,23 @@ class URHO3D_API Texture2D : public Texture
 
 public:
     /// Construct.
-    Texture2D(Context* context);
+    explicit Texture2D(Context* context);
     /// Destruct.
-    virtual ~Texture2D();
+    ~Texture2D() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
-    virtual bool BeginLoad(Deserializer& source);
+    bool BeginLoad(Deserializer& source) override;
     /// Finish resource loading. Always called from the main thread. Return true if successful.
-    virtual bool EndLoad();
+    bool EndLoad() override;
     /// Mark the GPU resource destroyed on context destruction.
-    virtual void OnDeviceLost();
+    void OnDeviceLost() override;
     /// Recreate the GPU resource and restore data if applicable.
-    virtual void OnDeviceReset();
+    void OnDeviceReset() override;
     /// Release the texture.
-    virtual void Release();
+    void Release() override;
 
     /// Set size, format, usage and multisampling parameters for rendertargets. Zero size will follow application window size. Return true if successful.
     /** Autoresolve true means the multisampled texture will be automatically resolved to 1-sample after being rendered to and before being sampled as a texture.
@@ -69,14 +70,17 @@ public:
     /// Get data from a mip level. The destination buffer must be big enough. Return true if successful.
     bool GetData(unsigned level, void* dest) const;
     /// Get image data from zero mip level. Only RGB and RGBA textures are supported.
+    bool GetImage(Image& image) const;
+    /// Get image data from zero mip level. Only RGB and RGBA textures are supported.
     SharedPtr<Image> GetImage() const;
 
     /// Return render surface.
+    /// @property
     RenderSurface* GetRenderSurface() const { return renderSurface_; }
 
 protected:
     /// Create the GPU texture.
-    virtual bool Create();
+    bool Create() override;
 
 private:
     /// Handle render surface update event.

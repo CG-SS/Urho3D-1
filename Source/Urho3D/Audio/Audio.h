@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2017 the Urho3D project.
+// Copyright (c) 2008-2020 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -43,9 +43,9 @@ class URHO3D_API Audio : public Object
 
 public:
     /// Construct.
-    Audio(Context* context);
+    explicit Audio(Context* context);
     /// Destruct. Terminate the audio thread and free the audio buffer.
-    virtual ~Audio();
+    ~Audio() override;
 
     /// Initialize sound output with specified buffer length and output mode.
     bool SetMode(int bufferLengthMSec, int mixRate, bool stereo, bool interpolation = true);
@@ -56,6 +56,7 @@ public:
     /// Suspend sound output.
     void Stop();
     /// Set master gain on a specific sound type such as sound effects, music or voice.
+    /// @property
     void SetMasterGain(const String& type, float gain);
     /// Pause playback of specific sound type. This allows to suspend e.g. sound effects or voice when the game is paused. By default all sound types are unpaused.
     void PauseSoundType(const String& type);
@@ -64,35 +65,44 @@ public:
     /// Resume playback of all sound types.
     void ResumeAll();
     /// Set active sound listener for 3D sounds.
+    /// @property
     void SetListener(SoundListener* listener);
     /// Stop any sound source playing a certain sound clip.
     void StopSound(Sound* sound);
 
     /// Return byte size of one sample.
+    /// @property
     unsigned GetSampleSize() const { return sampleSize_; }
 
     /// Return mixing rate.
+    /// @property
     int GetMixRate() const { return mixRate_; }
 
     /// Return whether output is interpolated.
+    /// @property
     bool GetInterpolation() const { return interpolation_; }
 
     /// Return whether output is stereo.
+    /// @property
     bool IsStereo() const { return stereo_; }
 
     /// Return whether audio is being output.
+    /// @property
     bool IsPlaying() const { return playing_; }
 
     /// Return whether an audio stream has been reserved.
+    /// @property
     bool IsInitialized() const { return deviceID_ != 0; }
 
     /// Return master gain for a specific sound source type. Unknown sound types will return full gain (1).
+    /// @property
     float GetMasterGain(const String& type) const;
 
     /// Return whether specific sound type has been paused.
     bool IsSoundTypePaused(const String& type) const;
 
     /// Return active sound listener.
+    /// @property
     SoundListener* GetListener() const;
 
     /// Return all sound sources.
@@ -115,12 +125,6 @@ public:
     /// Mix sound sources into the buffer.
     void MixOutput(void* dest, unsigned samples);
 
-    /// Final multiplier for audio byte conversion.
-#ifdef __EMSCRIPTEN__
-    static const int SAMPLE_SIZE_MUL = 2;
-#else
-    static const int SAMPLE_SIZE_MUL = 1;
-#endif
 private:
     /// Handle render update event.
     void HandleRenderUpdate(StringHash eventType, VariantMap& eventData);
@@ -134,19 +138,19 @@ private:
     /// Audio thread mutex.
     Mutex audioMutex_;
     /// SDL audio device ID.
-    unsigned deviceID_;
+    unsigned deviceID_{};
     /// Sample size.
-    unsigned sampleSize_;
+    unsigned sampleSize_{};
     /// Clip buffer size in samples.
-    unsigned fragmentSize_;
+    unsigned fragmentSize_{};
     /// Mixing rate.
-    int mixRate_;
+    int mixRate_{};
     /// Mixing interpolation flag.
-    bool interpolation_;
+    bool interpolation_{};
     /// Stereo flag.
-    bool stereo_;
+    bool stereo_{};
     /// Playing flag.
-    bool playing_;
+    bool playing_{};
     /// Master gain by sound source type.
     HashMap<StringHash, Variant> masterGain_;
     /// Paused sound types.
@@ -158,6 +162,7 @@ private:
 };
 
 /// Register Audio library objects.
+/// @nobind
 void URHO3D_API RegisterAudioLibrary(Context* context);
 
 }
